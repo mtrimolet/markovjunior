@@ -4,7 +4,6 @@ import log;
 import utils;
 
 namespace stk  = stormkit;
-namespace stkm = stk::monadic;
 namespace stdr = std::ranges;
 namespace stdv = std::views;
 
@@ -61,11 +60,11 @@ auto RewriteRule::get_ishifts(char c) const noexcept -> std::vector<glm::vec<3, 
 
   shifts.append_range(
     stdr::subrange(ishifts.cbegin(ignored_bucket), ishifts.cend(ignored_bucket))
-      | stdv::transform(stkm::get<1>())
+      | stdv::transform(stk::monadic::get<1>())
   );
   shifts.append_range(
     stdr::subrange(ishifts.cbegin(bucket), ishifts.cend(bucket))
-      | stdv::transform(stkm::get<1>())
+      | stdv::transform(stk::monadic::get<1>())
   );
 
   return shifts;

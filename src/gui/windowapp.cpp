@@ -22,9 +22,8 @@ import stormkit.gpu;
 // import gui.render;
 
 namespace stk  = stormkit;
-namespace stkg = stormkit::gpu;
-namespace stkw = stormkit::wsi;
-namespace stkm = stormkit::monadic;
+namespace stkg = stk::gpu;
+namespace stkw = stk::wsi;
 namespace stdr = std::ranges;
 // namespace stdv = std::views;
 
@@ -106,15 +105,14 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
   );
 
   ilog("init stormkit vulkan");
-  *stkg::initialize_backend().transform_error(stkm::assert("Failed to initialize gpu backend"));
+  *stkg::initialize_backend().transform_error(stk::monadic::assert("Failed to initialize gpu backend"));
 
   ilog("create gpu instance and attach surface to window");
   const auto instance = stkg::Instance::create(WINDOW_TITLE)
-                          .transform_error(stkm::assert("Failed to initialize gpu instance"))
+                          .transform_error(stk::monadic::assert("Failed to initialize gpu instance"))
                           .value();
   const auto surface = stkg::Surface::create_from_window(instance, window)
-                         .transform_error(stkm::
-                                            assert("Failed to initialize window gpu surface"))
+                         .transform_error(stk::monadic::assert("Failed to initialize window gpu surface"))
                          .value();
 
   // pick the best physical device
@@ -145,20 +143,20 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
 
   // create gpu device
   const auto device = stkg::Device::create(*physical_device, instance)
-                        .transform_error(stkm::assert("Failed to initialize gpu device"))
+                        .transform_error(stk::monadic::assert("Failed to initialize gpu device"))
                         .value();
 
   // create swapchain
   const auto window_extent = window.extent();
   const auto swapchain     = stkg::SwapChain::create(device, surface, window_extent)
-                           .transform_error(stkm::assert("Failed to create swapchain"))
+                           .transform_error(stk::monadic::assert("Failed to create swapchain"))
                            .value();
 
   const auto raster_queue = stkg::Queue::create(device, device.raster_queue_entry());
 
   const auto command_pool
     = stkg::CommandPool::create(device)
-        .transform_error(stkm::assert("Failed to create raster queue command pool"))
+        .transform_error(stk::monadic::assert("Failed to create raster queue command pool"))
         .value();
 
   // imgui related features
@@ -170,7 +168,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
 
   const auto descriptor_pool
     = stkg::DescriptorPool::create(device, POOL_SIZES, BUFFERING_COUNT)
-         .transform_error(stkm::assert("Failed to create descriptor pool"))
+         .transform_error(stk::monadic::assert("Failed to create descriptor pool"))
          .value();
 
   // const auto path          = std::filesystem::path { u8"build/shaders/triangle.spv" };
@@ -178,19 +176,17 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
   //                                                        // SHADER_DIR "/triangle.spv",
   //                                                        path,
   //                                                        stkg::ShaderStageFlag::VERTEX)
-  //                              .transform_error(stkm::assert("Failed to load vertex shader"))
+  //                              .transform_error(stk::monadic::assert("Failed to load vertex shader"))
   //                              .value();
 
   // const auto fragment_shader = stkg::Shader::load_from_file(device,
   //                                                          SHADER_DIR "/triangle.spv",
   //                                                          stkg::ShaderStageFlag::FRAGMENT)
-  //                                .transform_error(stkm::
-  //                                                   assert("Failed to load fragment shader"))
+  //                                .transform_error(stk::monadic::assert("Failed to load fragment shader"))
   //                                .value();
 
   // const auto pipeline_layout = stkg::PipelineLayout::create(device, {})
-  //                                .transform_error(stkm::
-  //                                                   assert("Failed to create pipeline layout"))
+  //                                .transform_error(stk::monadic::assert("Failed to create pipeline layout"))
   //                                .value();
 
   // initialize render pass
@@ -200,7 +196,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
                { .attachments = { { .format = swapchain.pixel_format() } },
                  .subpasses   = { { .bind_point            = stkg::PipelineBindPoint::GRAPHICS,
                                     .color_attachment_refs = { { .attachment_id = 0u } } } } })
-          .transform_error(stkm::assert("Failed to create render pass"))
+          .transform_error(stk::monadic::assert("Failed to create render pass"))
           .value();
 
   // initialize render pipeline
@@ -229,7 +225,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
   // };
 
   // const auto pipeline = stkg::Pipeline::create(device, state, pipeline_layout, render_pass)
-  //                         .transform_error(stkm::assert("Failed to create raster pipeline"))
+  //                         .transform_error(stk::monadic::assert("Failed to create raster pipeline"))
   //                         .value();
 
   // create present engine resources
@@ -238,16 +234,13 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
       for (auto _ : stk::range(BUFFERING_COUNT)) {
           out.push_back({
             .in_flight = stkg::Fence::create_signaled(device)
-                           .transform_error(stkm::assert("Failed to create swapchain image "
-                                                            "in flight fence"))
+                           .transform_error(stk::monadic::assert("Failed to create swapchain image in flight fence"))
                            .value(),
             .image_available = stkg::Semaphore::create(device)
-                                 .transform_error(stkm::assert("Failed to create "
-                                                                  "present wait semaphore"))
+                                 .transform_error(stk::monadic::assert("Failed to create present wait semaphore"))
                                  .value(),
             .render_cmb = command_pool.create_command_buffer()
-                            .transform_error(stkm::assert("Failed to create transition "
-                                                             "command buffers"))
+                            .transform_error(stk::monadic::assert("Failed to create transition command buffers"))
                             .value(),
           });
       }
@@ -259,7 +252,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
 
   auto transition_cmbs
     = command_pool.create_command_buffers(image_count)
-        .transform_error(stkm::assert("Failed to create transition command buffers"))
+        .transform_error(stk::monadic::assert("Failed to create transition command buffers"))
         .value();
 
   auto image_resources = std::vector<SwapchainImageResource> {};
@@ -268,13 +261,11 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
   auto image_index = 0u;
   for (const auto& swap_image : images) {
       auto view = stkg::ImageView::create(device, swap_image)
-                    .transform_error(stkm::
+                    .transform_error(stk::monadic::
                                        assert("Failed to create swapchain image view"))
                     .value();
       auto framebuffer = render_pass.create_frame_buffer(device, window_extent, stk::to_refs(view))
-                           .transform_error(stkm::assert(
-                             std::format("Failed to create framebuffer for image {}",
-                                         image_index)))
+                           .transform_error(stk::monadic::assert(std::format("Failed to create framebuffer for image {}", image_index)))
                            .value();
 
       image_resources.push_back({
@@ -282,14 +273,13 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
         .view            = std::move(view),
         .framebuffer     = std::move(framebuffer),
         .render_finished = stkg::Semaphore::create(device)
-                             .transform_error(stkm::assert("Failed to create render "
-                                                                    "signal semaphore"))
+                             .transform_error(stk::monadic::assert("Failed to create render signal semaphore"))
                              .value(),
       });
 
       auto& transition_cmb = transition_cmbs[image_index];
       *transition_cmb.begin(true)
-         .transform_error(stkm::assert("Failed to begin texture transition command buffer"))
+         .transform_error(stk::monadic::assert("Failed to begin texture transition command buffer"))
          .value()
          ->begin_debug_region(std::format("transition image {}", image_index))
          .transition_image_layout(swap_image,
@@ -297,24 +287,23 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
                                   stkg::ImageLayout::PRESENT_SRC)
          .end_debug_region()
          .end()
-         .transform_error(stkm::assert("Failed to begin texture transition command "
-                                          "buffer"));
+         .transform_error(stk::monadic::assert("Failed to begin texture transition command buffer"));
 
       ++image_index;
   }
 
   const auto fence = stkg::Fence::create(device)
-                       .transform_error(stkm::assert("Failed to create transition fence"))
+                       .transform_error(stk::monadic::assert("Failed to create transition fence"))
                        .value();
 
   const auto cmbs = stk::to_refs(transition_cmbs);
 
   raster_queue.submit({ .command_buffers = cmbs }, stk::as_ref(fence))
-    .transform_error(stkm::assert("Failed to submit texture transition command buffers"))
+    .transform_error(stk::monadic::assert("Failed to submit texture transition command buffers"))
     .value();
 
   // wait for transition to be done
-  fence.wait().transform_error(stkm::assert());
+  fence.wait().transform_error(stk::monadic::assert());
 
   ilog("loading imgui");
   IMGUI_CHECKVERSION();
@@ -420,7 +409,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
           .transform([&in_flight](auto&&) mutable noexcept { in_flight.reset(); })
           .and_then(acquire_next_image)
           .transform(extract_index)
-          .transform_error(stkm::assert("Failed to acquire next swapchain image"))
+          .transform_error(stk::monadic::assert("Failed to acquire next swapchain image"))
           .value();
 
     const auto& swapchain_image_resource = image_resources[image_index];
@@ -434,10 +423,10 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
     // render in it
     auto& render_cmb = submission_resource.render_cmb;
     render_cmb.reset()
-       .transform_error(stkm::assert("Failed to reset render command buffer"))
+       .transform_error(stk::monadic::assert("Failed to reset render command buffer"))
        .value()
        ->begin()
-       .transform_error(stkm::assert("Failed to begin render command buffer"))
+       .transform_error(stk::monadic::assert("Failed to begin render command buffer"))
        .value()
        ->begin_debug_region("Render imgui")
        .begin_render_pass(render_pass, framebuffer);
@@ -446,10 +435,10 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
 
     *render_cmb.end_render_pass()
        .end()
-       .transform_error(stkm::assert("Failed to end render command buffer"))
+       .transform_error(stk::monadic::assert("Failed to end render command buffer"))
        .value()
        ->submit(raster_queue, stk::as_refs(wait), PIPELINE_FLAGS, stk::as_refs(signal), stk::as_ref(in_flight))
-       .transform_error(stkm::assert("Failed to submit render command buffer"));
+       .transform_error(stk::monadic::assert("Failed to submit render command buffer"));
 
     // present it
     auto update_current_frame = [&current_frame](auto&&) mutable noexcept {
@@ -458,7 +447,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
 
     raster_queue.present(stk::as_refs(swapchain), stk::as_refs(signal), stk::as_view(image_index))
       .transform(update_current_frame)
-      .transform_error(stkm::assert("Failed to present swapchain image"));
+      .transform_error(stk::monadic::assert("Failed to present swapchain image"));
 
     // std::this_thread::yield();
   });
