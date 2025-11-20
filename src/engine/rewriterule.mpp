@@ -60,11 +60,6 @@ struct std::formatter<RewriteRule> {
       if (it == ctx.end())
           return it;
 
-      // if (*it == '#')
-      // {
-      //     quoted = true;
-      //     ++it;
-      // }
       if (it != ctx.end() && *it != '}')
           throw std::format_error("Invalid format args for RewriteRule.");
 
@@ -75,10 +70,7 @@ struct std::formatter<RewriteRule> {
   FmtContext::iterator format(const RewriteRule& r, FmtContext& ctx) const
   {
       std::ostringstream out;
-      // if (quoted)
-      //     out << std::quoted(s);
-      // else
-          out << std::format("[{}x{}]{}{}{}", r.input.extents.extent(2), r.input.extents.extent(1), r.input, sep, r.output);
+      out << std::format("[{}x{}]{}{}{}", r.input.extents.extent(2), r.input.extents.extent(1), r.input, sep, r.output);
 
       return std::ranges::copy(std::move(out).str(), ctx.out()).out;
   }

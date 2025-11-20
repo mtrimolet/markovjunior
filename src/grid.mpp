@@ -213,11 +213,6 @@ struct std::formatter<Grid<T>> {
       if (it == ctx.end())
           return it;
 
-      // if (*it == '#')
-      // {
-      //     quoted = true;
-      //     ++it;
-      // }
       if (it != ctx.end() && *it != '}')
           throw std::format_error("Invalid format args for Grid.");
 
@@ -228,10 +223,7 @@ struct std::formatter<Grid<T>> {
   FmtContext::iterator format(const Grid<T>& g, FmtContext& ctx) const
   {
       std::ostringstream out;
-      // if (quoted)
-      //     out << std::quoted(s);
-      // else
-          out << std::format("{}", g.values);
+      out << std::format("{}", g.values);
 
       return stdr::copy(std::move(out).str(), ctx.out()).out;
   }
@@ -252,11 +244,6 @@ struct std::formatter<Change<T>> {
       if (it == ctx.end())
           return it;
 
-      // if (*it == '#')
-      // {
-      //     quoted = true;
-      //     ++it;
-      // }
       if (it != ctx.end() && *it != '}')
           throw std::format_error("Invalid format args for Grid.");
 
@@ -267,10 +254,7 @@ struct std::formatter<Change<T>> {
   FmtContext::iterator format(const Change<T>& c, FmtContext& ctx) const
   {
       std::ostringstream out;
-      // if (quoted)
-      //     out << std::quoted(s);
-      // else
-          out << std::format("change[u = {}, value = {}] ", c.u, c.value);
+      out << std::format("change[u = {}, value = {}] ", c.u, c.value);
 
       return stdr::copy(std::move(out).str(), ctx.out()).out;
   }

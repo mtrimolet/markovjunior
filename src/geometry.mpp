@@ -193,11 +193,6 @@ struct std::formatter<HyperRectangle<E, T>> {
       if (it == ctx.end())
           return it;
 
-      // if (*it == '#')
-      // {
-      //     quoted = true;
-      //     ++it;
-      // }
       if (it != ctx.end() && *it != '}')
           throw std::format_error("Invalid format args for Grid.");
 
@@ -208,10 +203,7 @@ struct std::formatter<HyperRectangle<E, T>> {
   FmtContext::iterator format(const HyperRectangle<E, T>& r, FmtContext& ctx) const
   {
       std::ostringstream out;
-      // if (quoted)
-      //     out << std::quoted(s);
-      // else
-          out << std::format("box[u = {}, size = {}] ", r.u, r.size);
+      out << std::format("box[u = {}, size = {}] ", r.u, r.size);
 
       return std::ranges::copy(std::move(out).str(), ctx.out()).out;
   }
