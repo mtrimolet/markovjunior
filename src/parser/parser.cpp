@@ -36,7 +36,7 @@ auto Model(const pugi::xml_document& xmodel) noexcept -> ::Model {
   auto origin = xnode.attribute("origin").as_bool(false);
 
   auto unions = RewriteRule::Unions{};
-  unions.emplace('*', symbols | stdr::to<std::set>());
+  unions.emplace(RewriteRule::IGNORED_SYMBOL, symbols | stdr::to<std::set>());
   unions.insert_range(symbols | stdv::transform([](auto c) static noexcept { 
     return std::tuple{ c, std::set{ c } };
   }));
