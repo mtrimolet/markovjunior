@@ -23,7 +23,7 @@ struct RewriteRule {
   Grid<Output> output;
 
   Dist draw;
-  bool original;
+  bool is_copy;
 
   static auto parse(
     const Unions& unions,
@@ -33,7 +33,7 @@ struct RewriteRule {
   ) noexcept -> RewriteRule;
 
   RewriteRule() = delete;
-  RewriteRule(Grid<Input>&& input, Grid<Output>&& output, double p = 1.0, bool original = true) noexcept;
+  RewriteRule(Grid<Input>&& input, Grid<Output>&& output, double p = 1.0, bool is_copy = false) noexcept;
 
   auto operator==(const RewriteRule& other) const noexcept -> bool;
 

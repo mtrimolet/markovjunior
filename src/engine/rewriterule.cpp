@@ -25,11 +25,11 @@ auto RewriteRule::parse(
   };
 }
 
-RewriteRule::RewriteRule(Grid<Input>&& _input, Grid<Output>&& _output, double p, bool _original) noexcept
+RewriteRule::RewriteRule(Grid<Input>&& _input, Grid<Output>&& _output, double p, bool _is_copy) noexcept
 : input{std::move(_input)},
   output{std::move(_output)},
   draw{p},
-  original{_original},
+  is_copy{_is_copy},
   ishifts{
     std::from_range,
     stdv::zip(input, mdiota(input.area()))
@@ -88,7 +88,7 @@ auto RewriteRule::xreflected() const noexcept -> RewriteRule {
     input.xreflected(),
     output.xreflected(),
     draw.p(),
-    false
+    true
   };
 }
 
@@ -97,7 +97,7 @@ auto RewriteRule::xyrotated() const noexcept -> RewriteRule {
     input.xyrotated(),
     output.xyrotated(),
     draw.p(),
-    false
+    true
   };
 }
 
@@ -106,6 +106,6 @@ auto RewriteRule::zyrotated() const noexcept -> RewriteRule {
     input.zyrotated(),
     output.zyrotated(),
     draw.p(),
-    false
+    true
   };
 }

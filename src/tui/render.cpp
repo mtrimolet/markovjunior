@@ -191,7 +191,7 @@ Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
   ) {
     auto next_rule = stdr::find_if(
       stdr::subrange(irule, stdr::cend(rulenode->rules)) | stdv::drop(1),
-      &RewriteRule::original
+      std::not_fn(&RewriteRule::is_copy)
     );
     elements.push_back(rule(*irule, palette, stdr::distance(irule, next_rule)));
     irule = next_rule;
