@@ -31,15 +31,17 @@ RuleNode::RuleNode(RuleNode::Mode _mode, std::vector<RewriteRule>&& _rules, Rewr
 auto RuleNode::operator()(const TracedGrid<char>& grid, std::vector<Change<char>>& changes) noexcept -> void {
   if (not predict(grid, changes)) return;
   scan(grid);
-  select(grid);
+  infer(grid);
+  select();
   apply(grid, changes);
 }
 
-template <>
-struct std::hash<std::tuple<glm::vec<3, stk::u32>, stk::u32>> {
-  inline constexpr auto operator()(std::tuple<glm::vec<3, stk::u32>, stk::u32> t) const noexcept -> std::size_t {
-    return std::hash<glm::vec<3, stk::u32>>{}(std::get<0>(t))
-         ^ std::hash<stk::u32>{}(std::get<1>(t));
+template <typename ...T>
+struct std::hash<std::tuple<T...>> {
+  constexpr auto operator()(std::tuple<T...> t) const noexcept -> std::size_t {
+    return std::apply([](T ...args) static noexcept {
+      return (std::hash<T>{}(args) ^ ...);
+    }, t);
   }
 };
 
@@ -124,10 +126,9 @@ auto RuleNode::predict(const Grid<char>& grid, std::vector<Change<char>>& change
   }
 }
 
-auto RuleNode::select(const Grid<char>& grid) noexcept -> void {
+auto RuleNode::select() noexcept -> void {
   switch (mode) {
     case Mode::ONE:
-      infer(grid);
       if (auto picked = pick(active, stdr::end(matches));
                picked != stdr::end(matches)
       ) {
@@ -140,7 +141,6 @@ auto RuleNode::select(const Grid<char>& grid) noexcept -> void {
       break;
 
     case Mode::ALL:
-      infer(grid);
       for (auto selection = stdr::end(matches);
                 selection != active;
       ) {

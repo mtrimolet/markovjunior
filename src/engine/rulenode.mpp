@@ -57,7 +57,7 @@ private:
 
   std::optional<stk::ioffset> prev = {};
   auto scan(const TracedGrid<char>& grid) noexcept -> void;
-  auto select(const Grid<char>& grid) noexcept -> void;
+  auto select() noexcept -> void;
   auto apply(const TracedGrid<char>& grid, std::vector<Change<char>>& changes) -> void;
 
   std::mt19937 rng = std::mt19937{std::random_device{}()};
