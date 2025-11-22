@@ -26,7 +26,7 @@ auto Model(const pugi::xml_document& xmodel) noexcept -> ::Model {
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "values", "[root]", xnode.offset_debug())
   );
-  auto symbols = std::string{ xnode.attribute("values").as_string() };
+  auto symbols = std::string_view{ xnode.attribute("values").as_string() };
   stk::ensures(
     not stdr::empty(symbols),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -47,7 +47,7 @@ auto Model(const pugi::xml_document& xmodel) noexcept -> ::Model {
 
   return ::Model{
     // title,
-    std::move(symbols), std::move(unions),
+    std::string{ symbols }, std::move(unions),
     std::move(origin),
     std::move(program)
   };
@@ -59,7 +59,7 @@ auto Union(const pugi::xml_node& xnode) noexcept -> decltype(auto) {
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "symbol", "union", xnode.offset_debug())
   );
-  auto symbol_str = std::string{ xnode.attribute("symbol").as_string() };
+  auto symbol_str = std::string_view{ xnode.attribute("symbol").as_string() };
   stk::ensures(
     not stdr::empty(symbol_str),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -76,7 +76,7 @@ auto Union(const pugi::xml_node& xnode) noexcept -> decltype(auto) {
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "values", "union", xnode.offset_debug())
   );
-  auto values = std::string{ xnode.attribute("values").as_string() };
+  auto values = std::string_view{ xnode.attribute("values").as_string() };
   stk::ensures(
     not stdr::empty(values),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -179,7 +179,7 @@ auto Rule(
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "in", "[rule]", xnode.offset_debug())
   );
-  auto input = std::string{ xnode.attribute("in").as_string() };
+  auto input = std::string_view{ xnode.attribute("in").as_string() };
   stk::ensures(
     not stdr::empty(input),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -191,7 +191,7 @@ auto Rule(
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "out", "[rule]", xnode.offset_debug())
   );
-  auto output = std::string{ xnode.attribute("out").as_string() };
+  auto output = std::string_view{ xnode.attribute("out").as_string() };
   stk::ensures(
     not stdr::empty(output),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -237,7 +237,7 @@ auto Field(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Field> {
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "for", "field", xnode.offset_debug())
   );
-  auto _for = std::string{ xnode.attribute("for").as_string() };
+  auto _for = std::string_view{ xnode.attribute("for").as_string() };
   stk::ensures(
     not stdr::empty(_for),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -254,7 +254,7 @@ auto Field(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Field> {
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "on", "field", xnode.offset_debug())
   );
-  auto substrate = std::string{ xnode.attribute("on").as_string() };
+  auto substrate = std::string_view{ xnode.attribute("on").as_string() };
   stk::ensures(
     not stdr::empty(substrate),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -273,7 +273,7 @@ auto Field(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Field> {
   );
 
   auto inversed = not xnode.attribute("to");
-  auto zero = std::string{ xnode.attribute("from").as_string(xnode.attribute("to").as_string()) };
+  auto zero = std::string_view{ xnode.attribute("from").as_string(xnode.attribute("to").as_string()) };
   stk::ensures(
     not stdr::empty(zero),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -304,7 +304,7 @@ auto Observe(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Observe>
     std::format("missing '{}' attribute in '{}' node [:{}]",
                 "value", "observe", xnode.offset_debug())
   );
-  auto value = std::string{ xnode.attribute("value").as_string() };
+  auto value = std::string_view{ xnode.attribute("value").as_string() };
   stk::ensures(
     not stdr::empty(value),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -316,7 +316,7 @@ auto Observe(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Observe>
                 "value", "observe", xnode.offset_debug())
   );
 
-  auto from = std::string{ xnode.attribute("from").as_string() };
+  auto from = std::string_view{ xnode.attribute("from").as_string() };
   stk::ensures(
     not xnode.attribute("from") or not stdr::empty(from),
     std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -351,7 +351,7 @@ auto Palette(const pugi::xml_document& xpalette) noexcept -> ColorPalette {
             std::format("missing '{}' attribute in '{}' node [:{}]",
                         "symbol", "color", xcolor.offset_debug())
           );
-          auto symbol_str = std::string{ xcolor.attribute("symbol").as_string() };
+          auto symbol_str = std::string_view{ xcolor.attribute("symbol").as_string() };
           stk::ensures(
             not stdr::empty(symbol_str),
             std::format("empty '{}' attribute in '{}' node [:{}]",
@@ -368,17 +368,23 @@ auto Palette(const pugi::xml_document& xpalette) noexcept -> ColorPalette {
             std::format("missing '{}' attribute in '{}' node [:{}]",
                         "value", "color", xcolor.offset_debug())
           );
-          auto value = std::string{ xcolor.attribute("value").as_string() };
+          auto value = std::string_view{ xcolor.attribute("value").as_string() };
           stk::ensures(
             not stdr::empty(value),
             std::format("empty '{}' attribute in '{}' node [:{}]",
                         "value", "color", xcolor.offset_debug())
           );
+          stk::ensures(
+            stdr::size(value) == 6u,
+            std::format("attribute '{}' should be a rgb hex value in '{}' node [:{}]",
+                        "value", "color", xcolor.offset_debug())
+          );
         
-          return std::pair{
-            symbol_str[0],
-            (255u << 24u) + fromBase<stk::u32>(value, 16)
-          };
+          return std::tuple{ symbol_str[0], Color{
+            fromBase<stk::u8>({ stdr::cbegin(value),     stdr::cbegin(value) + 2 }, 16),
+            fromBase<stk::u8>({ stdr::cbegin(value) + 2, stdr::cbegin(value) + 4 }, 16),
+            fromBase<stk::u8>({ stdr::cbegin(value) + 4, stdr::cend(value)       }, 16),
+          }};
       })
     };
 }

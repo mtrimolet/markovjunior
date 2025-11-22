@@ -13,6 +13,8 @@ import engine.fields;      // <field>
 import engine.observes;    // <observe>
 import engine.runner;      // <sequence>, <markov>
 
+namespace stk = stormkit;
+
 export {
 
 namespace parser {
@@ -49,8 +51,8 @@ auto Fields(const pugi::xml_node& xnode) noexcept -> ::Fields;
 auto Observe(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Observe>;
 auto Observes(const pugi::xml_node& xnode) noexcept -> ::Observes;
 
-using Color32 = stormkit::u32;
-using ColorPalette = std::unordered_map<char, Color32>;
+using Color = stk::RGBColorU;
+using ColorPalette = std::unordered_map<char, Color>;
 
 auto Palette(const pugi::xml_document& xpalette) noexcept -> ColorPalette;
 

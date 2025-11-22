@@ -40,15 +40,12 @@ auto ConsoleApp::operator()(std::span<const std::string_view> args) noexcept -> 
 
   auto model = parser::Model(parser::document(modelfile));
   auto palette = model.symbols
-    | stdv::transform([&](auto character) noexcept {
-        return std::make_pair(
-          character,
-          default_palette.contains(character)
-            ? Color::RGB((default_palette.at(character) >> 16) & 0xff,
-                         (default_palette.at(character) >>  8) & 0xff,
-                         (default_palette.at(character)      ) & 0xff)
-            : Color::Default
-        );
+    | stdv::transform([&default_palette](auto character) noexcept {
+        if (not default_palette.contains(character)) {
+          return std::tuple{ character, Color{ Color::Default }};
+        }
+        const auto& c = default_palette.at(character);
+        return std::tuple{ character, Color::RGB(c.red, c.green, c.blue) };
     })
     | stdr::to<render::Palette>();
 
