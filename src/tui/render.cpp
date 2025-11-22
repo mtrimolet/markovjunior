@@ -52,7 +52,7 @@ Element grid(const ::TracedGrid<char>& g, const Palette& palette) noexcept {
     | size(HEIGHT, EQUAL, h);
 }
 
-Element rule(const ::RewriteRule& rule, const Palette& palette, stk::cpp::UInt count = 1) noexcept {
+Element rule(const ::RewriteRule& rule, const Palette& palette) noexcept {
   auto input = Image{
     static_cast<int>(rule.input.extents.extent(2)) * 2,
     static_cast<int>(rule.input.extents.extent(1))
@@ -107,7 +107,6 @@ Element rule(const ::RewriteRule& rule, const Palette& palette, stk::cpp::UInt c
       | size(WIDTH, EQUAL, w)
       | size(HEIGHT, EQUAL, h)
       | border,
-    text(std::format("x{}", count)),
   });
 }
 
@@ -190,7 +189,10 @@ Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
       irule + 1, stdr::cend(node.rulenode.rules),
       std::not_fn(&RewriteRule::is_copy)
     );
-    elements.push_back(rule(*irule, palette, stdr::distance(irule, next_rule)));
+    elements.push_back(hbox({
+      rule(*irule, palette),
+      text(std::format("x{}", stdr::distance(irule, next_rule))),
+    }));
     irule = next_rule;
   }
 
