@@ -273,6 +273,7 @@ Component ControlsView(Controls& controls) {
     Container::Horizontal({
       Button("play/pause", std::bind_front(&Controls::toggle_pause, &controls)),
       Button("reset", std::bind_front(&Controls::reset, &controls)),
+      Button("next", std::bind_front(&Controls::go_next, &controls)),
     }),
     Slider<decltype(controls.tickrate)>({
       .value = &controls.tickrate,
@@ -291,11 +292,6 @@ Component ControlsView(Controls& controls) {
       })
         | Renderer(vcenter),
     }),
-    Container::Horizontal({
-      // Button("previous", []{}),
-      Button("next", []{}),
-    })
-      | Renderer(hcenter),
   });
 }
 
@@ -403,7 +399,7 @@ Component MainView(const TracedGrid<char>& grid, const Model& model, Controls& c
           | window_wrap("program");
       }),
       ControlsView(controls)
-        | Renderer(window_wrap("controls") | size(HEIGHT, EQUAL, 17)),
+        | Renderer(window_wrap("controls") | size(HEIGHT, EQUAL, 9)),
     }),
     Renderer([]{ return separator(); }),
     WorldAndPotentials(grid, model, palette)

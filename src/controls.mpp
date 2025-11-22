@@ -21,6 +21,9 @@ struct Controls {
   void reset();
   void wait_unpause();
 
+  bool next_frame = false;
+  void go_next();
+
   void rate_limit(clock::time_point last_time);
 };
 
