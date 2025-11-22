@@ -174,23 +174,20 @@ Element potential(char c, const Potential& pot, const Palette& palette) noexcept
 }
 
 Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
-  auto rulenode = node.rulenode.target<RuleNode>();
-  if (rulenode == nullptr) return text("<unknown_rule_node>");
-  
-  auto tag = rulenode->mode == RuleNode::Mode::ONE ? "one"
-           : rulenode->mode == RuleNode::Mode::ALL ? "all"
-                                                   : "prl";
+  auto tag = node.rulenode.mode == RuleNode::Mode::ONE ? "one"
+           : node.rulenode.mode == RuleNode::Mode::ALL ? "all"
+                                                       : "prl";
 
   auto steps = node.steps != 0 ? std::format("{}", node.steps)
                                : std::string{ "∞" };
 
   auto elements = Elements{};
   for(
-    auto irule = stdr::cbegin(rulenode->rules);
-    irule != stdr::cend(rulenode->rules);
+    auto irule = stdr::cbegin(node.rulenode.rules);
+    irule != stdr::cend(node.rulenode.rules);
   ) {
     auto next_rule = stdr::find_if(
-      stdr::subrange(irule, stdr::cend(rulenode->rules)) | stdv::drop(1),
+      irule + 1, stdr::cend(node.rulenode.rules),
       std::not_fn(&RewriteRule::is_copy)
     );
     elements.push_back(rule(*irule, palette, stdr::distance(irule, next_rule)));
@@ -341,9 +338,7 @@ Component WorldAndPotentials(const TracedGrid<char>& grid, const Model& model, c
     }
 
     void RefreshPotentials() {
-      auto c = current(model.program);
-      auto r = c == nullptr ? nullptr : 
-        c->target<RuleNode>();
+      auto r = current(model.program);
 
       if ((node == nullptr and r == nullptr)
        or (node == r and stdr::equal(

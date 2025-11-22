@@ -5,13 +5,13 @@ import stormkit.core;
 import utils;
 
 import grid;
+import engine.rulenode;
 
 namespace stk = stormkit;
 
 export {
 
 struct RuleRunner {
-  using RuleNode = std::function<void(const TracedGrid<char>&, std::vector<Change<char>>&)>;
   RuleNode rulenode;
   stk::cpp::UInt steps;
   stk::cpp::UInt step = 0;
@@ -22,7 +22,7 @@ struct RuleRunner {
 using NodeRunner = std::function<std::generator<bool>(TracedGrid<char>&)>;
 
 auto reset(NodeRunner& n) noexcept -> void;
-auto current(const NodeRunner& n) noexcept -> const RuleRunner::RuleNode*;
+auto current(const NodeRunner& n) noexcept -> const RuleNode*;
 
 struct TreeRunner {
   enum struct Mode { MARKOV, SEQUENCE };
