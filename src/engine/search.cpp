@@ -226,49 +226,10 @@ auto Candidate::weight(double depthCoefficient) const -> double {
 
 // TODO maybe avoid duplication of rulenode logic ?
 auto Candidate::children(std::span<const RewriteRule> rules, bool all) const -> std::vector<Grid<char>> {
-  // simulate rulenode (one | all)
   auto result = std::vector<Grid<char>>{};
-  // scan matches
-  auto matches = stdv::zip(rules, stdv::iota(0u))
-    | stdv::transform([&grid = state](const auto& v) noexcept {
-        const auto& [rule, r] = v;
-        const auto zone = grid.area();
-        const auto valid_zone = zone - Area3U{ {}, rule.output.area().shiftmax() };
-        return mdiota(grid.area())
-          // | stdv::transform([r_area = rule.output.area(), zone](auto u) noexcept {
-          //     return glm::min(
-          //       u - (u % r_area.size) + r_area.shiftmax(),
-          //       zone.shiftmax()
-          //     );
-          // })
-          // | stdr::to<std::unordered_set>()
-          // TODO group changes according to rule size
-          // currently this is highly redundant on adjacent changes (which happens a lot..)
-          // This is the old way, it is not a grouping but a filter so it only applies to full grid scan
-          // | stdv::filter([r_area = rule.output.area(), zone](auto u) noexcept {
-          //     return glm::all(
-          //          glm::equal(u, zone.shiftmax())
-          //       or glm::equal(u % r_area.size, r_area.shiftmax())
-          //     );
-          // })
-          | stdv::transform([&grid, &rule](auto u) noexcept {
-              return rule.get_ishifts(grid[u])
-                | stdv::transform([u](const auto &shift) noexcept {
-                      return u - shift;
-                });
-          })
-          | stdv::join
-          | stdv::filter(std::bind_front(&Area3U::contains, valid_zone))
-          | stdr::to<std::unordered_set>()
-          | stdv::transform([r](auto u) noexcept {
-              return std::tuple{ u, r };
-          });
-    })
-    | stdv::join
-    | stdv::transform([&rules](auto&& ur) noexcept {
-        return Match{ rules, std::get<0>(ur), std::get<1>(ur) };
-    })
-    | stdv::filter(std::bind_back(&Match::match, state));
+
+  auto matches = Match::scan(state, rules);
+
   if (all) {
     // all :
     //   non overlaping matches induce a common substate when applied simultaneously
