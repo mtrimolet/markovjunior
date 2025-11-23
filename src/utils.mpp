@@ -31,7 +31,7 @@ std::function<ReturnType (Args...)> memoize(std::function<ReturnType (Args...)> 
 }
 
 template <stk::meta::IsArithmetic T>
-inline constexpr auto fromBase(std::string_view x, stk::u8 base) noexcept -> T {
+constexpr auto fromBase(std::string_view x, stk::u8 base) noexcept -> T {
   auto&& out = T{};
   auto&& result =
       std::from_chars(stdr::cbegin(x), stdr::cend(x), out, base);
@@ -42,7 +42,7 @@ inline constexpr auto fromBase(std::string_view x, stk::u8 base) noexcept -> T {
 }
 
 template <stdr::sized_range A, stdr::sized_range B>
-inline constexpr auto cartesian_product(A&& a, B&& b) noexcept -> decltype(auto) {
+constexpr auto cartesian_product(A&& a, B&& b) noexcept -> decltype(auto) {
   return std::forward<A>(a) 
     | stdv::transform([&b] (auto&& i) noexcept {
         return std::forward<B>(b)
@@ -54,7 +54,7 @@ inline constexpr auto cartesian_product(A&& a, B&& b) noexcept -> decltype(auto)
 }
 
 template <stdr::sized_range A>
-inline constexpr auto chunk(A&& a, stk::usize extent) noexcept -> decltype(auto) {
+constexpr auto chunk(A&& a, stk::usize extent) noexcept -> decltype(auto) {
   return stdv::iota(0u, stdr::size(a))
     | stdv::stride(extent)
     | stdv::transform([&a, extent](auto i) noexcept {

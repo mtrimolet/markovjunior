@@ -43,7 +43,7 @@ namespace geometry {
 // glm only provides geometry functions for vectors of floating-point number types
 
 template <stk::meta::IsArithmetic T>
-inline constexpr auto dot(const glm::vec<3, T>& a, const glm::vec<3, T>& b) noexcept -> decltype(auto) {
+constexpr auto dot(const glm::vec<3, T>& a, const glm::vec<3, T>& b) noexcept -> decltype(auto) {
   // this will silently overflow
   return a.x * b.x
        + a.y * b.y
@@ -54,7 +54,7 @@ inline constexpr auto dot(const glm::vec<3, T>& a, const glm::vec<3, T>& b) noex
 
 template <stk::meta::IsArithmetic T>
 struct std::hash<glm::vec<3, T>> {
-  inline constexpr auto operator()(glm::vec<3, T> u) const noexcept -> std::size_t {
+  constexpr auto operator()(glm::vec<3, T> u) const noexcept -> std::size_t {
     auto h = std::hash<T>{};
     return h(u.x)
          ^ h(u.y)
@@ -75,54 +75,54 @@ struct Area {
   Offset u;
   Size size;
 
-  inline constexpr bool operator==(const Area& other) const noexcept = default;
+  constexpr bool operator==(const Area& other) const noexcept = default;
 
-  inline constexpr auto shiftmax() const noexcept -> Offset {
+  constexpr auto shiftmax() const noexcept -> Offset {
     return size - (size / size);
   }
 
-  inline constexpr auto outerbound() const noexcept -> Offset {
+  constexpr auto outerbound() const noexcept -> Offset {
     return u + static_cast<Offset>(size);
   }
 
-  inline constexpr auto contains(const Offset& v) const noexcept -> bool {
+  constexpr auto contains(const Offset& v) const noexcept -> bool {
     return glm::all(glm::lessThanEqual(u, v))
        and glm::all(glm::lessThan(v, outerbound()));
   }
 
-  inline constexpr auto operator+(const Offset& shift) const noexcept -> Area {
+  constexpr auto operator+(const Offset& shift) const noexcept -> Area {
     return {u + shift, size};
   }
 
-  inline constexpr auto operator-(const Offset& shift) const noexcept -> Area {
+  constexpr auto operator-(const Offset& shift) const noexcept -> Area {
     return {u - shift, size};
   }
 
-  inline constexpr auto operator*(stk::usize r) const noexcept -> Area {
+  constexpr auto operator*(stk::usize r) const noexcept -> Area {
     return {u, size * r};
   }
 
-  inline constexpr auto operator/(stk::usize r) const noexcept -> Area {
+  constexpr auto operator/(stk::usize r) const noexcept -> Area {
     return {u, size / r};
   }
 
-  inline constexpr auto center() const noexcept -> decltype(auto) {
+  constexpr auto center() const noexcept -> decltype(auto) {
     return operator/(2u).outerbound();
   }
 
-  inline constexpr auto overlaps(const Area& other) const noexcept -> bool {
+  constexpr auto overlaps(const Area& other) const noexcept -> bool {
     return glm::all(glm::lessThan(      u, other.outerbound()))
        and glm::all(glm::lessThan(other.u,       outerbound()));
   }
 
-  inline constexpr auto meet(const Area& other) const noexcept -> Area {
+  constexpr auto meet(const Area& other) const noexcept -> Area {
     if (not overlaps(other)) return {};
     auto&& u    = max(this->u, other.u);
     auto&& size = min(outerbound(), other.outerbound()) - u;
     return {std::move(u), std::move(size)};
   }
 
-  inline constexpr auto join(const Area& other) const noexcept -> Area {
+  constexpr auto join(const Area& other) const noexcept -> Area {
     auto&& u    = min(this->u, other.u);
     auto&& size = max(outerbound(), other.outerbound()) - u;
     return {std::move(u), std::move(size)};
@@ -131,12 +131,12 @@ struct Area {
 
 using Area3 = Area<3>;
 
-inline constexpr auto xreflected(const Area3& a) noexcept -> Area3 {
+constexpr auto xreflected(const Area3& a) noexcept -> Area3 {
   /* u -> { size.x - u.x - 1u, u.y, u.z } */
   return {a.u, a.size};
 }
 
-inline constexpr auto xyrotated(const Area3& a) noexcept -> Area3 {
+constexpr auto xyrotated(const Area3& a) noexcept -> Area3 {
   /* u -> { u.y, size.x - u.x - 1, u.z } */
   return {a.u, {
     a.size.y,
@@ -145,7 +145,7 @@ inline constexpr auto xyrotated(const Area3& a) noexcept -> Area3 {
   }};
 }
 
-inline constexpr auto zyrotated(const Area3& a) noexcept -> Area3 {
+constexpr auto zyrotated(const Area3& a) noexcept -> Area3 {
   /* u -> { u.x, size.z - u.z - 1, u.y } */
   return {a.u, {
     a.size.x,

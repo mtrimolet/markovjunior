@@ -31,11 +31,11 @@ struct TreeRunner {
   std::vector<NodeRunner> nodes;
   decltype(std::ranges::begin(nodes)) current_node = std::ranges::end(nodes);
 
-  inline constexpr TreeRunner(Mode _mode, std::vector<NodeRunner>&& _nodes) noexcept 
+  constexpr TreeRunner(Mode _mode, std::vector<NodeRunner>&& _nodes) noexcept 
   :  mode{_mode}, nodes{std::move(_nodes)}
   {}
 
-  inline constexpr auto current_index() const noexcept -> stk::ioffset {
+  constexpr auto current_index() const noexcept -> stk::ioffset {
     return std::ranges::distance(std::ranges::begin(nodes), current_node);
   }
 

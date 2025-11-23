@@ -12,7 +12,7 @@ using namespace std::literals;
 
 namespace parser {
 
-inline constexpr auto is_tag(std::string_view tag) noexcept -> decltype(auto) {
+constexpr auto is_tag(std::string_view tag) noexcept -> decltype(auto) {
   return [tag](const pugi::xml_node& c) noexcept {
     return c.name() == tag;
   };

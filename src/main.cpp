@@ -8,12 +8,12 @@ import gui.windowapp;
 
 namespace stk = stormkit;
 
-inline constexpr auto run_consoleapp(std::span<const std::string_view> args) noexcept -> int {
+constexpr auto run_consoleapp(std::span<const std::string_view> args) noexcept -> int {
   auto app = ConsoleApp{};
   return app(args);
 }
 
-inline constexpr auto run_windowapp(std::span<const std::string_view> args) noexcept -> int {
+constexpr auto run_windowapp(std::span<const std::string_view> args) noexcept -> int {
   auto app = WindowApp{};
   return app(args);
 }

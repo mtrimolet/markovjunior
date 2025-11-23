@@ -11,7 +11,7 @@ namespace stdv = std::views;
 
 export {
 
-inline constexpr auto fromExtents(std::dims<3> extents) noexcept -> Area3::Size {
+constexpr auto fromExtents(std::dims<3> extents) noexcept -> Area3::Size {
   return {
     extents.extent(2),
     extents.extent(1),
@@ -19,7 +19,7 @@ inline constexpr auto fromExtents(std::dims<3> extents) noexcept -> Area3::Size 
   };
 }
 
-inline constexpr auto toExtents(Area3::Size size) noexcept -> std::dims<3> {
+constexpr auto toExtents(Area3::Size size) noexcept -> std::dims<3> {
   return std::dims<3>{
     size.z,
     size.y,
@@ -27,38 +27,38 @@ inline constexpr auto toExtents(Area3::Size size) noexcept -> std::dims<3> {
   };
 }
 
-inline constexpr auto strides(std::dims<3> extents) noexcept -> std::dims<3> {
+constexpr auto strides(std::dims<3> extents) noexcept -> std::dims<3> {
   return std::dims<3>{ extents.extent(2) * extents.extent(1), extents.extent(2), 1u };
 }
 
-inline constexpr auto toIndex(Area3::Offset u, std::dims<3> extents) noexcept -> stk::ioffset {
+constexpr auto toIndex(Area3::Offset u, std::dims<3> extents) noexcept -> stk::ioffset {
   return geometry::dot(u, static_cast<Area3::Offset>(fromExtents(strides(extents))));
 }
 
-inline constexpr auto fromIndex(stk::ioffset i, std::dims<3> extents) noexcept -> Area3::Offset {
+constexpr auto fromIndex(stk::ioffset i, std::dims<3> extents) noexcept -> Area3::Offset {
   auto s = fromExtents(strides(extents));
   return Area3::Offset{i / s.x, i / s.y, i / s.z} % static_cast<Area3::Offset>(fromExtents(extents));
 }
 
-inline constexpr auto next(Area3::Offset u, std::dims<3> extents) noexcept -> Area3::Offset {
+constexpr auto next(Area3::Offset u, std::dims<3> extents) noexcept -> Area3::Offset {
   return fromIndex(toIndex(u, extents) + 1, extents);
 }
 
-inline constexpr auto prev(Area3::Offset u, const std::dims<3>& extents) noexcept -> Area3::Offset {
+constexpr auto prev(Area3::Offset u, const std::dims<3>& extents) noexcept -> Area3::Offset {
   return fromIndex(toIndex(u, extents) - 1, extents);
 }
 
-inline constexpr auto mdiota(Area3 zone) noexcept -> decltype(auto) {
+constexpr auto mdiota(Area3 zone) noexcept -> decltype(auto) {
   return stdv::iota(stk::ioffset{ 0 }, static_cast<stk::ioffset>(zone.size.z * zone.size.y * zone.size.x))
     | stdv::transform(std::bind_back(fromIndex, toExtents(zone.size)))
     | stdv::transform(std::bind_back(std::plus<Area3::Offset>{}, zone.u));
 }
 
-// inline constexpr auto mdiota(Area3::Offset origin, Area3::Offset outerbound) noexcept -> decltype(auto) {
+// constexpr auto mdiota(Area3::Offset origin, Area3::Offset outerbound) noexcept -> decltype(auto) {
 //   return mdiota<T>({origin, outerbound - origin});
 // }
 
-// inline constexpr auto mdiota(std::dims<3> extents) noexcept -> decltype(auto) {
+// constexpr auto mdiota(std::dims<3> extents) noexcept -> decltype(auto) {
 //   return mdiota({}, fromExtents(extents));
 // }
 
@@ -70,71 +70,71 @@ struct Grid {
   std::vector<T> values;
 
   template<container_compatible_range<T> R>
-  inline constexpr Grid(std::from_range_t, R&& _values, Extents _extents) noexcept 
+  constexpr Grid(std::from_range_t, R&& _values, Extents _extents) noexcept 
   : extents{_extents}, values{std::from_range, _values}
   {}
 
-  inline constexpr Grid(Extents _extents, T v) noexcept
+  constexpr Grid(Extents _extents, T v) noexcept
   : Grid{std::from_range, stdv::repeat(v, _extents.extent(0) * _extents.extent(1) * _extents.extent(2)), _extents}
   {}
 
-  inline constexpr Grid() noexcept
+  constexpr Grid() noexcept
   : extents{}, values{}
   {}
 
-  inline constexpr auto operator==(const Grid<T>& other) const noexcept -> bool = default;
+  constexpr auto operator==(const Grid<T>& other) const noexcept -> bool = default;
 
-  inline constexpr auto data() const noexcept -> decltype(auto) {
+  constexpr auto data() const noexcept -> decltype(auto) {
     return stdr::data(values);
   }
-  inline constexpr auto cdata() const noexcept -> decltype(auto) {
+  constexpr auto cdata() const noexcept -> decltype(auto) {
     return stdr::cdata(values);
   }
 
   using View = std::mdspan<T, Extents>;
-  inline constexpr operator View() const noexcept {
+  constexpr operator View() const noexcept {
     return { data(), extents };
   }
   using ConstView = std::mdspan<const T, Extents>;
-  inline constexpr operator ConstView() const noexcept {
+  constexpr operator ConstView() const noexcept {
     return { cdata(), extents };
   }
 
-  inline constexpr T& operator[](Area3::Offset u) noexcept {
+  constexpr T& operator[](Area3::Offset u) noexcept {
     return values[toIndex(u, extents)];
   }
 
-  inline constexpr const T& operator[](Area3::Offset u) const noexcept {
+  constexpr const T& operator[](Area3::Offset u) const noexcept {
     return values[toIndex(u, extents)];
   }
 
-  inline constexpr T& at(Area3::Offset u) {
+  constexpr T& at(Area3::Offset u) {
     return values.at(toIndex(u, extents));
   }
 
-  inline constexpr const T& at(Area3::Offset u) const {
+  constexpr const T& at(Area3::Offset u) const {
     return values.at(toIndex(u, extents));
   }
 
-  inline constexpr auto begin() const noexcept -> decltype(auto) {
+  constexpr auto begin() const noexcept -> decltype(auto) {
     return stdr::begin(values);
   }
-  inline constexpr auto cbegin() const noexcept -> decltype(auto) {
+  constexpr auto cbegin() const noexcept -> decltype(auto) {
     return stdr::cbegin(values);
   }
 
-  inline constexpr auto end() const noexcept -> decltype(auto) {
+  constexpr auto end() const noexcept -> decltype(auto) {
     return stdr::end(values);
   }
-  inline constexpr auto cend() const noexcept -> decltype(auto) {
+  constexpr auto cend() const noexcept -> decltype(auto) {
     return stdr::cend(values);
   }
 
-  inline constexpr auto empty() const noexcept -> decltype(auto) {
+  constexpr auto empty() const noexcept -> decltype(auto) {
     return stdr::empty(values);
   }
 
-  static inline constexpr auto parse(std::string_view str, std::function<T(char)> project = std::identity{}) noexcept -> decltype(auto) {
+  static constexpr auto parse(std::string_view str, std::function<T(char)> project = std::identity{}) noexcept -> decltype(auto) {
     static constexpr char ZSEP = ' ', YSEP = '/';
 
     auto&& values = str
@@ -165,11 +165,11 @@ struct Grid {
       | stdr::to<Grid<T>>(std::move(extents));
   }
 
-  inline constexpr auto area() const noexcept -> Area3 {
+  constexpr auto area() const noexcept -> Area3 {
     return { {}, fromExtents(extents) };
   }
 
-  inline constexpr auto xreflected() const noexcept -> Grid<T> {
+  constexpr auto xreflected() const noexcept -> Grid<T> {
     auto area = ::xreflected(this->area());
     return mdiota(area)
       | stdv::transform([this, size = area.size](auto&& u) noexcept {
@@ -179,7 +179,7 @@ struct Grid {
       | stdr::to<Grid<T>>(toExtents(area.size));
   }
 
-  inline constexpr auto xyrotated() const noexcept -> Grid<T> {
+  constexpr auto xyrotated() const noexcept -> Grid<T> {
     auto area = ::xyrotated(this->area());
     return mdiota(area)
       | stdv::transform([this, size = area.size](auto&& u) noexcept {
@@ -189,7 +189,7 @@ struct Grid {
       | stdr::to<Grid<T>>(toExtents(area.size));
   }
 
-  inline constexpr auto zyrotated() const noexcept -> Grid<T> {
+  constexpr auto zyrotated() const noexcept -> Grid<T> {
     auto area = ::zyrotated(this->area());
     return mdiota(area)
       | stdv::transform([this, size = area.size](auto&& u) noexcept {
@@ -260,13 +260,13 @@ template <class T>
 struct TracedGrid : Grid<T> {
   std::vector<Change<T>> history;
 
-  inline constexpr TracedGrid() noexcept
+  constexpr TracedGrid() noexcept
     : Grid<T>{}, history{} {}
 
-  inline constexpr TracedGrid(Grid<T>::Extents _extents, T v) noexcept
+  constexpr TracedGrid(Grid<T>::Extents _extents, T v) noexcept
     : Grid<T>{_extents, v}, history{} {}
 
-  inline constexpr auto apply(Change<T> change) noexcept -> void {
+  constexpr auto apply(Change<T> change) noexcept -> void {
     history.push_back(change);
     Grid<T>::operator[](change.u) = change.value;
   }

@@ -8,7 +8,7 @@ export {
 using Potential = Grid<double>;
 using Potentials = std::unordered_map<char, Potential>;
 
-inline constexpr auto propagate(auto&& initial, auto&& unfold) noexcept -> decltype(auto) {
+constexpr auto propagate(auto&& initial, auto&& unfold) noexcept -> decltype(auto) {
   for (
     auto&& q = std::forward<decltype(initial)>(initial) | std::ranges::to<std::queue>();
     not std::ranges::empty(q);
@@ -16,7 +16,7 @@ inline constexpr auto propagate(auto&& initial, auto&& unfold) noexcept -> declt
   ) q.push_range(unfold(q.front()));
 }
 
-inline constexpr auto is_normal(double value) noexcept -> bool {
+constexpr auto is_normal(double value) noexcept -> bool {
   return value == 0.0 or std::isnormal(value);
 };
 

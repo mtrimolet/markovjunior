@@ -10,7 +10,7 @@ namespace stdv = std::views;
 
 template <>
 struct std::hash<Grid<char>::Extents> {
-  inline constexpr auto operator()(Grid<char>::Extents t) const noexcept -> std::size_t {
+  constexpr auto operator()(Grid<char>::Extents t) const noexcept -> std::size_t {
     auto h = std::hash<Grid<char>::Extents::index_type>{};
     return h(t.extent(0))
          ^ h(t.extent(1))
@@ -20,7 +20,7 @@ struct std::hash<Grid<char>::Extents> {
 
 template <typename T>
 struct std::hash<std::vector<T>> {
-  inline constexpr auto operator()(const std::vector<T>& t) const noexcept -> std::size_t {
+  constexpr auto operator()(const std::vector<T>& t) const noexcept -> std::size_t {
     auto s = std::size_t{ 0 };
     auto h = std::hash<char>{};
     for (auto c : t)
@@ -31,7 +31,7 @@ struct std::hash<std::vector<T>> {
 
 template <>
 struct std::hash<Grid<char>> {
-  inline constexpr auto operator()(const Grid<char>& grid) const noexcept -> std::size_t {
+  constexpr auto operator()(const Grid<char>& grid) const noexcept -> std::size_t {
     return std::hash<decltype(grid.extents)>{}(grid.extents)
          ^ std::hash<decltype(grid.values)>{}(grid.values);
   }
