@@ -1,6 +1,6 @@
 module engine.observes;
 
-import glm;
+import geometry;
 import engine.match;
 
 namespace stdr = std::ranges;
@@ -35,31 +35,36 @@ auto Observe::future(std::vector<Change<char>>& changes, Future& future, const G
 
 auto Observe::backward_potentials(Potentials& potentials, const Future& future, std::span<const RewriteRule> rules) noexcept -> void {
   propagate(
-    potentials
-      | stdv::transform([&future](auto& p) noexcept {
-          auto& [c, potential] = p;
-          return mdiota(potential.area())
-            | stdv::filter([&future, c](auto u) noexcept {
-                return future[u].contains(c);
-            })
-            | stdv::transform([&potential, c](auto u) noexcept {
-                potential[u] = 0.0;
+    stdv::zip(mdiota(future.area()), future)
+      | stdv::transform([&extents = future.extents, &potentials](const auto& p) noexcept {
+          auto [u, f] = p;
+          return f
+            | stdv::transform([&extents, u, &potentials](auto c) noexcept {
+                if (not potentials.contains(c)) {
+                  potentials.emplace(c, Potential{ extents, std::numeric_limits<double>::quiet_NaN() });
+                }
+                potentials.at(c)[u] = 0.0;
                 return std::tuple{ u, c };
             });
       })
       | stdv::join,
-    [&potentials, &rules](auto&& front) noexcept {
+    [&extents = future.extents, &potentials, &rules](auto&& front) noexcept {
       auto [u, c] = front;
       auto p = potentials.at(c)[u];
       return stdv::iota(0u, stdr::size(rules))
         | stdv::transform([&rules, u](auto r) noexcept {
             return Match{ rules, u, r };
         })
-        | stdv::filter(std::bind_back(&Match::backward_match, potentials, p))
-        | stdv::transform(std::bind_back(&Match::backward_changes, potentials, p + 1))
+        | stdv::filter([&potentials, p](const auto& m) noexcept { return m.backward_match(potentials, p); })
+        | stdv::transform([&potentials, p](const auto& m) noexcept { return m.backward_changes(potentials, p + 1); })
+        // | stdv::filter(std::bind_back(&Match::backward_match, potentials, p))
+        // | stdv::transform(std::bind_back(&Match::backward_changes, potentials, p + 1))
         | stdv::join
-        | stdv::transform([&potentials](auto&& ch) noexcept {
+        | stdv::transform([&extents, &potentials](auto&& ch) noexcept {
             auto [c, p] = ch.value;
+            if (not potentials.contains(c)) {
+              potentials.emplace(c, Potential{ extents, std::numeric_limits<double>::quiet_NaN() });
+            }
             potentials.at(c)[ch.u] = p;
             return std::tuple{ ch.u, c };
         });

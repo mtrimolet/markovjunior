@@ -1,7 +1,6 @@
 export module grid;
 
 import std;
-import glm;
 import stormkit.core;
 import utils;
 import geometry;
@@ -12,7 +11,7 @@ namespace stdv = std::views;
 
 export {
 
-inline constexpr auto fromExtents(std::dims<3> extents) noexcept -> glm::vec<3, stk::u32> {
+inline constexpr auto fromExtents(std::dims<3> extents) noexcept -> Area3::Size {
   return {
     extents.extent(2),
     extents.extent(1),
@@ -20,7 +19,7 @@ inline constexpr auto fromExtents(std::dims<3> extents) noexcept -> glm::vec<3, 
   };
 }
 
-inline constexpr auto toExtents(glm::vec<3, stk::u32> size) noexcept -> std::dims<3> {
+inline constexpr auto toExtents(Area3::Size size) noexcept -> std::dims<3> {
   return std::dims<3>{
     size.z,
     size.y,
@@ -28,43 +27,40 @@ inline constexpr auto toExtents(glm::vec<3, stk::u32> size) noexcept -> std::dim
   };
 }
 
-inline constexpr auto strides(std::dims<3> extents) noexcept -> decltype(auto) {
-  return std::tuple{ extents.extent(2) * extents.extent(1), extents.extent(2), 1u };
+inline constexpr auto strides(std::dims<3> extents) noexcept -> std::dims<3> {
+  return std::dims<3>{ extents.extent(2) * extents.extent(1), extents.extent(2), 1u };
 }
 
-inline constexpr auto toIndex(glm::vec<3, stk::u32> u, std::dims<3> extents) noexcept -> stk::u32 {
-  auto&& [z, y, x] = strides(extents);
-  return geometry::dot(u, { x, y, z });
+inline constexpr auto toIndex(Area3::Offset u, std::dims<3> extents) noexcept -> stk::ioffset {
+  return geometry::dot(u, static_cast<Area3::Offset>(fromExtents(strides(extents))));
 }
 
-inline constexpr auto fromIndex(stk::u32 i, std::dims<3> extents) noexcept -> glm::vec<3, stk::u32> {
-  auto&& [z, y, x] = strides(extents);
-  return glm::vec<3, stk::u32>{i / x, i / y, i / z} % fromExtents(extents);
+inline constexpr auto fromIndex(stk::ioffset i, std::dims<3> extents) noexcept -> Area3::Offset {
+  auto s = fromExtents(strides(extents));
+  return Area3::Offset{i / s.x, i / s.y, i / s.z} % static_cast<Area3::Offset>(fromExtents(extents));
 }
 
-inline constexpr auto next(glm::vec<3, stk::u32> u, std::dims<3> extents) noexcept -> glm::vec<3, stk::u32> {
+inline constexpr auto next(Area3::Offset u, std::dims<3> extents) noexcept -> Area3::Offset {
   return fromIndex(toIndex(u, extents) + 1, extents);
 }
 
-inline constexpr auto prev(glm::vec<3, stk::u32> u, const std::dims<3>& extents) noexcept -> glm::vec<3, stk::u32> {
+inline constexpr auto prev(Area3::Offset u, const std::dims<3>& extents) noexcept -> Area3::Offset {
   return fromIndex(toIndex(u, extents) - 1, extents);
 }
 
-template <stk::meta::IsArithmetic T>
-inline constexpr auto mdiota(HyperRectangle<3, T> zone) noexcept -> decltype(auto) {
-  return stdv::iota(static_cast<T>(0), static_cast<T>(zone.size.z * zone.size.y * zone.size.x))
+inline constexpr auto mdiota(Area3 zone) noexcept -> decltype(auto) {
+  return stdv::iota(stk::ioffset{ 0 }, static_cast<stk::ioffset>(zone.size.z * zone.size.y * zone.size.x))
     | stdv::transform(std::bind_back(fromIndex, toExtents(zone.size)))
-    | stdv::transform(std::bind_back(std::plus<glm::vec<3, T>>{}, zone.u));
+    | stdv::transform(std::bind_back(std::plus<Area3::Offset>{}, zone.u));
 }
 
-template <stk::meta::IsArithmetic T>
-inline constexpr auto mdiota(glm::vec<3, T> origin, glm::vec<3, T> outerbound) noexcept -> decltype(auto) {
-  return mdiota<T>({origin, outerbound - origin});
-}
+// inline constexpr auto mdiota(Area3::Offset origin, Area3::Offset outerbound) noexcept -> decltype(auto) {
+//   return mdiota<T>({origin, outerbound - origin});
+// }
 
-inline constexpr auto mdiota(std::dims<3> extents) noexcept -> decltype(auto) {
-  return mdiota({}, fromExtents(extents));
-}
+// inline constexpr auto mdiota(std::dims<3> extents) noexcept -> decltype(auto) {
+//   return mdiota({}, fromExtents(extents));
+// }
 
 template <class T>
 struct Grid {
@@ -104,19 +100,19 @@ struct Grid {
     return { cdata(), extents };
   }
 
-  inline constexpr T& operator[](glm::vec<3, stk::u32> u) noexcept {
+  inline constexpr T& operator[](Area3::Offset u) noexcept {
     return values[toIndex(u, extents)];
   }
 
-  inline constexpr const T& operator[](glm::vec<3, stk::u32> u) const noexcept {
+  inline constexpr const T& operator[](Area3::Offset u) const noexcept {
     return values[toIndex(u, extents)];
   }
 
-  inline constexpr T& at(glm::vec<3, stk::u32> u) {
+  inline constexpr T& at(Area3::Offset u) {
     return values.at(toIndex(u, extents));
   }
 
-  inline constexpr const T& at(glm::vec<3, stk::u32> u) const {
+  inline constexpr const T& at(Area3::Offset u) const {
     return values.at(toIndex(u, extents));
   }
 
@@ -169,7 +165,7 @@ struct Grid {
       | stdr::to<Grid<T>>(std::move(extents));
   }
 
-  inline constexpr auto area() const noexcept -> Area3U {
+  inline constexpr auto area() const noexcept -> Area3 {
     return { {}, fromExtents(extents) };
   }
 
@@ -231,7 +227,7 @@ struct std::formatter<Grid<T>> {
 
 template <class T>
 struct Change {
-  glm::vec<3, stk::u32> u;
+  Area3::Offset u;
   T value;
 };
 

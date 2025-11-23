@@ -16,19 +16,20 @@ auto Match::scan(
       stdv::zip(rules, stdv::iota(0u))
         | stdv::transform([&grid, &history](const auto& v) noexcept {
             const auto& [rule, r] = v;
-            const auto g_area = grid.area();
-            const auto valid_zone = g_area - Area3U{ {}, rule.output.area().shiftmax() };
             return history
               | stdv::transform(&Change<char>::u)
               // TODO group changes according to rule size
               // currently this is highly redundant on adjacent changes (which happens a lot..)
               | stdv::transform([&grid, &rule](auto u) noexcept {
                   return rule.get_ishifts(grid[u])
-                    | stdv::transform(std::bind_front(std::minus{}, u));
+                    | stdv::transform(std::bind_front(std::minus<Area3::Offset>{}, u))
+                    | stdv::filter([g_area = grid.area(), r_area = rule.input.area()](auto u) noexcept {
+                        auto ru_area = r_area + u;
+                        return g_area.meet(ru_area) == ru_area;
+                    });
               })
               | stdv::join
               | stdr::to<std::unordered_set>()
-              | stdv::filter(std::bind_front(&Area3U::contains, valid_zone))
               | stdv::transform([r](auto u) noexcept {
                   return std::tuple{ u, r };
               });
@@ -47,20 +48,22 @@ auto Match::scan(
       | stdv::transform([&grid](const auto& v) noexcept {
           const auto& [rule, r] = v;
           const auto g_area = grid.area();
-          const auto valid_zone = g_area - Area3U{ {}, rule.output.area().shiftmax() };
           return mdiota(g_area)
             | stdv::filter([r_area = rule.output.area(), g_area](auto u) noexcept {
                 return glm::all(
                      glm::equal(u, g_area.shiftmax())
-                  or glm::equal(u % r_area.size, r_area.shiftmax())
+                  or glm::equal(u % static_cast<Area3::Offset>(r_area.size), r_area.shiftmax())
                 );
             })
             | stdv::transform([&grid, &rule](auto u) noexcept {
                 return rule.get_ishifts(grid[u])
-                  | stdv::transform(std::bind_front(std::minus{}, u));
+                  | stdv::transform(std::bind_front(std::minus<Area3::Offset>{}, u))
+                  | stdv::filter([g_area = grid.area(), r_area = rule.input.area()](auto u) noexcept {
+                      auto ru_area = r_area + u;
+                      return g_area.meet(ru_area) == ru_area;
+                  });
             })
             | stdv::join
-            | stdv::filter(std::bind_front(&Area3U::contains, valid_zone))
             | stdv::transform([r](auto u) noexcept {
                 return std::tuple{ u, r };
             });
@@ -74,6 +77,14 @@ auto Match::scan(
 }
 
 auto Match::match(const Grid<char>& grid) const noexcept -> bool {
+  // return stdr::mismatch(
+  //   rules[r].input, mdiota(area()),
+  //   [](const auto& i, char c) static noexcept {
+  //     return not i or i->contains(c);
+  //   },
+  //   {}, [&grid](auto u) { return grid[u]; }
+  // )
+  //   .in1 == stdr::end(rules[r].input);
   return stdr::all_of(
     stdv::zip(mdiota(area()), rules[r].input),
     [&grid](const auto& input) noexcept {

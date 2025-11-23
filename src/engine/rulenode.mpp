@@ -1,7 +1,6 @@
 export module engine.rulenode;
 
 import std;
-import glm;
 import stormkit.core;
 import utils;
 

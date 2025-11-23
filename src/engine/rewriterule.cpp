@@ -52,8 +52,8 @@ RewriteRule::RewriteRule(Grid<Input>&& _input, Grid<Output>&& _output, double p,
   }
 {}
 
-auto RewriteRule::get_ishifts(char c) const noexcept -> std::vector<glm::vec<3, stk::u32>>{
-  auto shifts = std::vector<glm::vec<3, stk::u32>>{};
+auto RewriteRule::get_ishifts(char c) const noexcept -> std::vector<Area3::Offset>{
+  auto shifts = std::vector<Area3::Offset>{};
 
   auto ignored_bucket = ishifts.bucket(IGNORED_SYMBOL);
   auto bucket         = ishifts.bucket(c);
@@ -76,9 +76,9 @@ auto RewriteRule::operator==(const RewriteRule& other) const noexcept -> bool {
      and draw.p() == other.draw.p();
 }
 
-auto RewriteRule::backward_neighborhood() const noexcept -> Area3I {
+auto RewriteRule::backward_neighborhood() const noexcept -> Area3 {
   const auto a = output.area();
-  const auto shift = glm::vec<3, stk::i32>{1, 1, 1} - static_cast<glm::vec<3, stk::i32>>(a.size);
+  const auto shift = Area3::Offset{1, 1, 1} - static_cast<Area3::Offset>(a.size);
   return a + shift;
 }
 

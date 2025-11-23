@@ -1,10 +1,9 @@
 module engine.fields;
 
-import glm;
 import stormkit.core;
 import geometry;
 
-namespace stk  = stormkit;
+// namespace stk  = stormkit;
 namespace stdr = std::ranges;
 namespace stdv = std::views;
 
@@ -19,12 +18,12 @@ auto Field::potential(const Grid<char>& grid, Potential& potential) const noexce
           return std::tuple{ u, 0.0 };
       }),
     [this, &grid, &potential](auto&& front) noexcept {
-      static constexpr auto neigh_size = 3u * glm::vec<3, stk::u32>{ 1, 1, 1 };
-      static constexpr auto neigh_shift = -static_cast<glm::vec<3, stk::i32>>(neigh_size) / 2;
-      static constexpr auto neigh = Area3I{ neigh_shift, neigh_size };
+      static constexpr auto neigh_size = 3ul * Area3::Size{ 1, 1, 1 };
+      static constexpr auto neigh_shift = -static_cast<Area3::Offset>(neigh_size) / 2l;
+      static constexpr auto neigh = Area3{ neigh_shift, neigh_size };
 
       auto [u, p] = front;
-      auto new_us = (neigh + u).umeet(potential.area());
+      auto new_us = (neigh + u).meet(potential.area());
       auto new_p  = inversed ? p - 1.0 : p + 1.0;
       return mdiota(new_us)
         | stdv::filter([this, &grid, &potential](auto n) noexcept {

@@ -1,6 +1,5 @@
 module engine.search;
 
-import glm;
 import geometry;
 
 import engine.match;

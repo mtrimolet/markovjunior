@@ -1,7 +1,6 @@
 export module engine.match;
 
 import std;
-import glm;
 import stormkit.core;
 import geometry;
 
@@ -14,12 +13,12 @@ namespace stk  = stormkit;
 export
 struct Match {
   std::span<const RewriteRule> rules;
-  glm::vec<3, stk::u32> u;
-  stk::ioffset          r;
+  Area3::Offset u;
+  stk::ioffset  r;
 
   double w = 1.0;
 
-  auto area() const noexcept -> Area3U {
+  auto area() const noexcept -> Area3 {
     return rules[r].output.area() + u;
   }
 

@@ -1,20 +1,19 @@
 export module engine.rewriterule;
 
 import std;
-import glm;
 import stormkit.core;
 import geometry;
 
 import grid;
 
-namespace stk = stormkit;
+// namespace stk = stormkit;
 
 export 
 struct RewriteRule {
   using Input  = std::optional<std::set<char>>;
   using Output = std::optional<char>;
   using Unions = std::unordered_map<char, std::set<char>>;
-  using Shifts = std::unordered_multimap<char, glm::vec<3, stk::u32>>;
+  using Shifts = std::unordered_multimap<char, Area3::Offset>;
   using Dist   = std::bernoulli_distribution;
   
   static constexpr auto IGNORED_SYMBOL = char { '*' };
@@ -38,8 +37,8 @@ struct RewriteRule {
   auto operator==(const RewriteRule& other) const noexcept -> bool;
 
   /** Provides the relative area from inside which this rule would update the origin */
-  auto backward_neighborhood() const noexcept -> Area3I;
-  auto get_ishifts(char c) const noexcept -> std::vector<glm::vec<3, stk::u32>>;
+  auto backward_neighborhood() const noexcept -> Area3;
+  auto get_ishifts(char c) const noexcept -> std::vector<Area3::Offset>;
 
   auto xreflected() const noexcept -> RewriteRule;
   auto xyrotated() const noexcept -> RewriteRule;

@@ -1,20 +1,12 @@
 export module geometry;
 
 import std;
-import glm;
 import stormkit.core;
+export import glm;
 
 namespace stk = stormkit;
 
 export {
-
-using glm::operator+;
-using glm::operator-;
-using glm::operator*;
-using glm::operator/;
-using glm::operator%;
-using glm::operator==;
-using glm::operator!=;
 
 template <stk::usize E, stk::meta::IsArithmetic T>
 struct std::formatter<glm::vec<E, T>> {
@@ -60,113 +52,91 @@ inline constexpr auto dot(const glm::vec<3, T>& a, const glm::vec<3, T>& b) noex
 
 }
 
-template <>
-struct std::hash<glm::vec<3, stk::u32>> {
-  inline constexpr auto operator()(glm::vec<3, stk::u32> u) const noexcept -> std::size_t {
-    auto h = std::hash<stk::u32>{};
+template <stk::meta::IsArithmetic T>
+struct std::hash<glm::vec<3, T>> {
+  inline constexpr auto operator()(glm::vec<3, T> u) const noexcept -> std::size_t {
+    auto h = std::hash<T>{};
     return h(u.x)
          ^ h(u.y)
          ^ h(u.z);
   }
 };
 
-template <stk::usize E, stk::meta::IsArithmetic T>
-struct HyperRectangle {
-  using Position = glm::vec<E, T>;
-  using Size = glm::vec<E, std::make_unsigned_t<T>>;
+template <stk::usize E>
+using Offset = glm::vec<E, stk::ioffset>;
+template <stk::usize E>
+using Size = glm::vec<E, stk::usize>;
 
-  Position u;
+template <stk::usize E>
+struct Area {
+  using Offset = Offset<E>;
+  using Size = Size<E>;
+
+  Offset u;
   Size size;
 
-  inline constexpr HyperRectangle() noexcept = default;
+  inline constexpr bool operator==(const Area& other) const noexcept = default;
 
-  inline constexpr HyperRectangle(Position _u, Size _size) noexcept
-    : u{_u}, size{_size} {}
-
-  template <stk::meta::IsArithmetic T2>
-  inline constexpr HyperRectangle(const HyperRectangle<E, T2>& other) noexcept
-    : HyperRectangle{other.u, other.size} {}
-
-  inline constexpr auto shiftmax() const noexcept -> Position {
+  inline constexpr auto shiftmax() const noexcept -> Offset {
     return size - (size / size);
   }
 
-  inline constexpr auto outerbound() const noexcept -> Position {
-    return u + static_cast<Position>(size);
+  inline constexpr auto outerbound() const noexcept -> Offset {
+    return u + static_cast<Offset>(size);
   }
 
-  inline constexpr auto contains(const Position& v) const noexcept -> bool {
+  inline constexpr auto contains(const Offset& v) const noexcept -> bool {
     return glm::all(glm::lessThanEqual(u, v))
        and glm::all(glm::lessThan(v, outerbound()));
   }
 
-  inline constexpr auto operator+(const HyperRectangle& other) const noexcept -> HyperRectangle {
-    return {u + other.u, size + other.size};
-  }
-
-  inline constexpr auto operator-(const HyperRectangle& other) const noexcept -> HyperRectangle {
-    return {u - other.u, size - other.size};
-  }
-
-  inline constexpr auto operator+(const Position& shift) const noexcept -> HyperRectangle {
+  inline constexpr auto operator+(const Offset& shift) const noexcept -> Area {
     return {u + shift, size};
   }
 
-  inline constexpr auto operator-(const Position& shift) const noexcept -> HyperRectangle {
+  inline constexpr auto operator-(const Offset& shift) const noexcept -> Area {
     return {u - shift, size};
   }
 
-  inline constexpr auto operator*(T r) const noexcept -> HyperRectangle {
-    if constexpr (std::is_same_v<Position, Size>)
-      return {u * r, size * r};
-    else
-      return {u * r, size * std::abs(r)};
+  inline constexpr auto operator*(stk::usize r) const noexcept -> Area {
+    return {u, size * r};
   }
 
-  inline constexpr auto operator/(T r) const noexcept -> HyperRectangle {
-    if constexpr (std::is_same_v<Position, Size>)
-      return {u / r, size / r};
-    else
-      return {u / r, size / std::abs(r)};
+  inline constexpr auto operator/(stk::usize r) const noexcept -> Area {
+    return {u, size / r};
   }
 
   inline constexpr auto center() const noexcept -> decltype(auto) {
     return operator/(2u).outerbound();
   }
 
-  inline constexpr auto overlaps(const HyperRectangle& other) const noexcept -> bool {
+  inline constexpr auto overlaps(const Area& other) const noexcept -> bool {
     return glm::all(glm::lessThan(      u, other.outerbound()))
        and glm::all(glm::lessThan(other.u,       outerbound()));
   }
 
-  inline constexpr auto meet(const HyperRectangle& other) const noexcept -> HyperRectangle {
+  inline constexpr auto meet(const Area& other) const noexcept -> Area {
     if (not overlaps(other)) return {};
     auto&& u    = max(this->u, other.u);
     auto&& size = min(outerbound(), other.outerbound()) - u;
     return {std::move(u), std::move(size)};
   }
 
-  inline constexpr auto umeet(const HyperRectangle<E, std::make_unsigned_t<T>>& other) const noexcept -> HyperRectangle<E, std::make_unsigned_t<T>> 
-  requires (not std::is_same_v<Position, Size>) {
-    return meet(other);
-  }
-
-  inline constexpr auto join(const HyperRectangle& other) const noexcept -> HyperRectangle {
+  inline constexpr auto join(const Area& other) const noexcept -> Area {
     auto&& u    = min(this->u, other.u);
     auto&& size = max(outerbound(), other.outerbound()) - u;
     return {std::move(u), std::move(size)};
   }
 };
 
-using Area3U = HyperRectangle<3, stk::u32>;
-using Area3I = HyperRectangle<3, stk::i32>;
+using Area3 = Area<3>;
 
-inline constexpr auto xreflected(const Area3U& a) noexcept -> Area3U {
+inline constexpr auto xreflected(const Area3& a) noexcept -> Area3 {
   /* u -> { size.x - u.x - 1u, u.y, u.z } */
   return {a.u, a.size};
 }
 
-inline constexpr auto xyrotated(const Area3U& a) noexcept -> Area3U {
+inline constexpr auto xyrotated(const Area3& a) noexcept -> Area3 {
   /* u -> { u.y, size.x - u.x - 1, u.z } */
   return {a.u, {
     a.size.y,
@@ -175,7 +145,7 @@ inline constexpr auto xyrotated(const Area3U& a) noexcept -> Area3U {
   }};
 }
 
-inline constexpr auto zyrotated(const Area3U& a) noexcept -> Area3U {
+inline constexpr auto zyrotated(const Area3& a) noexcept -> Area3 {
   /* u -> { u.x, size.z - u.z - 1, u.y } */
   return {a.u, {
     a.size.x,
@@ -184,8 +154,8 @@ inline constexpr auto zyrotated(const Area3U& a) noexcept -> Area3U {
   }};
 }
 
-template <stk::usize E, class T>
-struct std::formatter<HyperRectangle<E, T>> {
+template <stk::usize E>
+struct std::formatter<Area<E>> {
   template<class ParseContext>
   constexpr ParseContext::iterator parse(ParseContext& ctx)
   {
@@ -200,7 +170,7 @@ struct std::formatter<HyperRectangle<E, T>> {
   }
 
   template<class FmtContext>
-  FmtContext::iterator format(const HyperRectangle<E, T>& r, FmtContext& ctx) const
+  FmtContext::iterator format(const Area<E>& r, FmtContext& ctx) const
   {
       std::ostringstream out;
       out << std::format("box[u = {}, size = {}] ", r.u, r.size);
