@@ -8,8 +8,8 @@ namespace stk = stormkit;
 
 export {
 
-template <stk::usize E, stk::meta::IsArithmetic T>
-struct std::formatter<glm::vec<E, T>> {
+template <stk::meta::IsArithmetic T>
+struct std::formatter<glm::vec<3, T>> {
   template<class ParseContext>
   constexpr ParseContext::iterator parse(ParseContext& ctx)
   {
@@ -24,15 +24,10 @@ struct std::formatter<glm::vec<E, T>> {
   }
 
   template<class FmtContext>
-  FmtContext::iterator format(const glm::vec<E, T>& m, FmtContext& ctx) const
+  FmtContext::iterator format(const glm::vec<3, T>& m, FmtContext& ctx) const
   {
       std::ostringstream out;
-      out << "[";
-      for (auto i = 0; i < E; i++) {
-        out << std::format("{}", std::get<i>(m));
-        if (i < E - 1) out << " ";
-      }
-      out << "]";
+      out << std::format("[{}, {}, {}]", m.x, m.y, m.z);
 
       return std::ranges::copy(std::move(out).str(), ctx.out()).out;
   }
