@@ -48,6 +48,8 @@ struct RuleNode {
 
   auto operator()(const TracedGrid<char>& grid, std::vector<Change<char>>& changes) noexcept -> void;
 
+  auto reset() noexcept -> void;
+
 private:
   std::vector<Match> matches = {};
   using MatchIterator = std::ranges::iterator_t<decltype(matches)>;

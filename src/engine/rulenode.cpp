@@ -36,6 +36,15 @@ auto RuleNode::operator()(const TracedGrid<char>& grid, std::vector<Change<char>
   apply(grid, changes);
 }
 
+auto RuleNode::reset() noexcept -> void {
+  potentials.clear();
+  future = std::nullopt;
+  trajectory.clear();
+  matches.clear();
+  active = std::ranges::begin(matches);
+  prev = {};
+}
+
 template <typename ...T>
 struct std::hash<std::tuple<T...>> {
   constexpr auto operator()(std::tuple<T...> t) const noexcept -> std::size_t {
@@ -190,6 +199,8 @@ auto RuleNode::pick(MatchIterator begin, MatchIterator end) noexcept -> MatchIte
 }
 
 auto RuleNode::infer(const Grid<char>& grid) noexcept -> void {
+  if (stdr::empty(potentials)) return;
+  
   stdr::for_each(
     active, stdr::end(matches),
     [&potentials = potentials, &grid](auto& m) noexcept {

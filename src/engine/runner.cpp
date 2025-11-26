@@ -20,6 +20,7 @@ auto RuleRunner::operator()(TracedGrid<char>& grid) noexcept -> std::generator<b
 auto reset(NodeRunner& n) noexcept -> void {
   if (auto p = n.target<RuleRunner>(); p != nullptr) {
     p->step = 0;
+    p->rulenode.reset();
     return;
   }
 
