@@ -228,6 +228,7 @@ auto Rules(
     std::move(rules)
      | stdv::transform(std::bind_back(symmetries<RewriteRule>, symmetry))
      | stdv::join
+     | stdv::as_rvalue
   };
 }
 

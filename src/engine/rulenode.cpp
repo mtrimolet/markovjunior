@@ -53,7 +53,7 @@ auto RuleNode::scan(const TracedGrid<char>& grid) noexcept -> void {
 
   matches.erase(
     stdr::begin(stdr::remove_if(
-      matches, std::not_fn(std::bind_back(&Match::match, grid))
+      matches, std::not_fn(std::bind_back(&Match::match, std::cref(grid)))
     )),
     stdr::end(matches)
   );
@@ -71,7 +71,7 @@ auto RuleNode::apply(const TracedGrid<char>& grid, std::vector<Change<char>>& ch
 
   changes.append_range(
     stdr::subrange(active, stdr::cend(matches))
-      | stdv::transform(std::bind_back(&Match::changes, grid))
+      | stdv::transform(std::bind_back(&Match::changes, std::cref(grid)))
       | stdv::join
   );
 

@@ -38,7 +38,7 @@ auto Match::scan(
         | stdv::transform([rules](auto&& ur) noexcept {
             return Match{ rules, std::get<0>(ur), std::get<1>(ur) };
         })
-        | stdv::filter(std::bind_back(&Match::match, grid))
+        | stdv::filter(std::bind_back(&Match::match, std::cref(grid)))
     };
   }
 
@@ -72,7 +72,7 @@ auto Match::scan(
       | stdv::transform([rules](auto&& ur) noexcept {
           return Match{ rules, std::get<0>(ur), std::get<1>(ur) };
       })
-      | stdv::filter(std::bind_back(&Match::match, grid))
+      | stdv::filter(std::bind_back(&Match::match, std::cref(grid)))
   };
 }
 
