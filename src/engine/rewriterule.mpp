@@ -34,12 +34,18 @@ struct RewriteRule {
   RewriteRule() = delete;
   RewriteRule(Grid<Input>&& input, Grid<Output>&& output, double p = 1.0, bool is_copy = false) noexcept;
 
+  RewriteRule(RewriteRule&&) noexcept = default;
+  auto operator=(RewriteRule&&) noexcept -> RewriteRule& = default;
+  RewriteRule(const RewriteRule&) noexcept = delete;
+  auto operator=(const RewriteRule&) noexcept -> RewriteRule& = delete;
+
   auto operator==(const RewriteRule& other) const noexcept -> bool;
 
   /** Provides the relative area from inside which this rule would update the origin */
   auto backward_neighborhood() const noexcept -> Area3;
   auto get_ishifts(char c) const noexcept -> std::vector<Area3::Offset>;
 
+  auto identity() const noexcept -> RewriteRule;
   auto xreflected() const noexcept -> RewriteRule;
   auto xyrotated() const noexcept -> RewriteRule;
   auto zyrotated() const noexcept -> RewriteRule;

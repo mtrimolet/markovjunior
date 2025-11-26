@@ -82,6 +82,11 @@ struct Grid {
   : extents{}, values{}
   {}
 
+  constexpr Grid(const Grid& other) noexcept = delete;
+  constexpr auto operator=(const Grid& other) noexcept-> Grid&  = delete;
+  constexpr Grid(Grid&& other) noexcept = default;
+  constexpr auto operator=(Grid&& other) noexcept-> Grid&  = default;
+
   constexpr auto operator==(const Grid<T>& other) const noexcept -> bool = default;
 
   constexpr auto data() const noexcept -> decltype(auto) {

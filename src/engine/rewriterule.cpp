@@ -82,6 +82,15 @@ auto RewriteRule::backward_neighborhood() const noexcept -> Area3 {
   return a + shift;
 }
 
+auto RewriteRule::identity() const noexcept -> RewriteRule {
+  return {
+    { std::from_range, input, input.extents },
+    { std::from_range, output, input.extents },
+    draw.p(),
+    false
+  };
+}
+
 auto RewriteRule::xreflected() const noexcept -> RewriteRule {
   return {
     input.xreflected(),
