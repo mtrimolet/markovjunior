@@ -37,9 +37,9 @@ struct RuleNode {
   Fields   fields = {};
   Observes observes = {};
 
-  Potentials potentials = {};
-  Future     future = {};
-  Trajectory trajectory = {};
+  Potentials            potentials = {};
+  std::optional<Future> future = {};
+  Trajectory            trajectory = {};
 
   RuleNode(Mode _mode, std::vector<RewriteRule>&& _rules, RewriteRule::Unions&& _unions) noexcept;
   RuleNode(Mode _mode, std::vector<RewriteRule>&& _rules, RewriteRule::Unions&& _unions, Fields&& _fields, double _temperature = 0.0) noexcept;

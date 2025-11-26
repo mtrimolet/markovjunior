@@ -6,7 +6,7 @@ import engine.match;
 namespace stdr = std::ranges;
 namespace stdv = std::views;
 
-auto Observe::future(std::vector<Change<char>>& changes, Future& future, const Grid<char>& grid, const Observes& observes) noexcept -> void {
+auto Observe::future(std::vector<Change<char>>& changes, std::optional<Future>& future, const Grid<char>& grid, const Observes& observes) noexcept -> void {
   auto values = std::unordered_set<char>{};
 
   future = {
@@ -29,7 +29,7 @@ auto Observe::future(std::vector<Change<char>>& changes, Future& future, const G
   if (const auto expected = observes | stdv::keys | stdr::to<std::unordered_set>();
                  expected != values
   ) {
-    future = {};
+    future = std::nullopt;
   }
 }
 

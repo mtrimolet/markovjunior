@@ -16,7 +16,7 @@ struct Observe {
   std::optional<char>      from;
   std::unordered_set<char> to;
 
-  static auto future(std::vector<Change<char>>& changes, Future& future, const Grid<char>& grid, const Observes& observes) noexcept -> void;
+  static auto future(std::vector<Change<char>>& changes, std::optional<Future>& future, const Grid<char>& grid, const Observes& observes) noexcept -> void;
   static auto backward_potentials(Potentials& potentials, const Future& future, const std::span<const RewriteRule> rules) noexcept -> void;
 };
 

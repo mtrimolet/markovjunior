@@ -92,35 +92,37 @@ auto RuleNode::predict(const Grid<char>& grid, std::vector<Change<char>>& change
       return true;
 
     case Inference::OBSERVE:
-      if (not stdr::empty(future)) {
+      if (future) {
         return true;
       }
 
       Observe::future(changes, future, grid, observes);
-      if (stdr::empty(future)) {
+      if (not future) {
         return false;
       }
 
-      Observe::backward_potentials(potentials, future, rules);
+      Observe::backward_potentials(potentials, *future, rules);
 
       return true;
 
     case Inference::SEARCH:
-      if (not stdr::empty(future)) {
+      if (future) {
         return true;
       }
 
       Observe::future(changes, future, grid, observes);
-      if (stdr::empty(future)) {
+      if (not future) {
         return false;
       }
 
       auto TRIES = limit < 0 ? 1 : 20;
-      for (auto k = 0; k < TRIES && stdr::empty(trajectory); k++)
-        Search::trajectory(trajectory, future, grid, rules, mode == Mode::ALL, limit, depthCoefficient);
+      for (auto k = 0; k < TRIES && stdr::empty(trajectory); k++) {
+        Search::trajectory(trajectory, *future, grid, rules, mode == Mode::ALL, limit, depthCoefficient);
+      }
 
-      if (stdr::empty(trajectory))
-        ilog("SEARCH RETURNED NULL");
+      if (stdr::empty(trajectory)) {
+        ilog("can't find trajectory to future");
+      }
 
       return true;
   }
