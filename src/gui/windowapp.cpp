@@ -38,7 +38,7 @@ static const auto DEFAULT_MODEL_FILE   = "models/GoToGradient.xml"s;
 static constexpr auto DEFAULT_GRID_EXTENT = std::dims<3>{1u, 59u, 59u};
 static constexpr auto DEFAULT_TICKRATE = 60;
 
-static constexpr auto WINDOW_TITLE = "Hroza";
+static constexpr auto WINDOW_TITLE = "MarkovJunior";
 static constexpr auto WINDOW_SIZE  = stk::math::Extent2<stk::u32>{800, 600};
 static constexpr auto BUFFERING_COUNT = 2;
 

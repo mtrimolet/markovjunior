@@ -6,5 +6,5 @@ import std;
 import stormkit.log;
 
 export {
-IN_MODULE_LOGGER("hroza");
+IN_MODULE_LOGGER("markovjunior");
 }

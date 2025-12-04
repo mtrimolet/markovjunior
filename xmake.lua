@@ -76,7 +76,7 @@ if get_config("compile_commands") then
     add_rules("plugin.compile_commands.autoupdate", { outputdir = ".vscode", lsp = "clangd" })
 end
 
-target("hroza")
+target("markovjunior")
     set_kind("binary")
 
     add_packages("stormkit", { components = { "core", "log", "wsi", "gpu", "image" } })

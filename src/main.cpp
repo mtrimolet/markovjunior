@@ -20,7 +20,7 @@ constexpr auto run_windowapp(std::span<const std::string_view> args) noexcept ->
 
 auto main(const int argc, const char** argv) -> int {
   // [tmpfix] remove when xmake target properly handles workdir on macos
-  // chdir("/Users/mtrimolet/Desktop/mtrimolet/hroza");
+  // chdir("/Users/mtrimolet/Desktop/mtrimolet/markovjunior");
 
   stk::setup_signal_handler();
   stk::set_current_thread_name("MainThread");
