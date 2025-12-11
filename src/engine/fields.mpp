@@ -5,13 +5,16 @@ import std;
 import grid;
 import potentials;
 
+using charset = std::unordered_set<char>;
+
 export {
+
 struct Field;
 using Fields = std::unordered_map<char, Field>;
 
 struct Field {
   bool recompute, essential, inversed;
-  std::unordered_set<char> substrate, zero;
+  charset substrate, zero;
 
   auto potential(const Grid<char>& grid, Potential& potential) const noexcept -> void;
 

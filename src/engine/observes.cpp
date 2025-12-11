@@ -7,7 +7,7 @@ namespace stdr = std::ranges;
 namespace stdv = std::views;
 
 auto Observe::future(std::vector<Change<char>>& changes, std::optional<Future>& future, const Grid<char>& grid, const Observes& observes) noexcept -> void {
-  auto values = std::unordered_set<char>{};
+  auto values = charset{};
 
   future = {
     std::from_range,
@@ -26,7 +26,7 @@ auto Observe::future(std::vector<Change<char>>& changes, std::optional<Future>& 
     grid.extents
   };
 
-  if (const auto expected = observes | stdv::keys | stdr::to<std::unordered_set>();
+  if (const auto expected = observes | stdv::keys | stdr::to<charset>();
                  expected != values
   ) {
     future = std::nullopt;

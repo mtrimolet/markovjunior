@@ -7,12 +7,14 @@ import geometry;
 import grid;
 
 // namespace stk = stormkit;
+using charset = std::unordered_set<char>;
 
-export 
+export {
+
 struct RewriteRule {
-  using Input  = std::optional<std::set<char>>;
+  using Input  = std::optional<charset>;
   using Output = std::optional<char>;
-  using Unions = std::unordered_map<char, std::set<char>>;
+  using Unions = std::unordered_map<char, charset>;
   using Shifts = std::unordered_multimap<char, Area3::Offset>;
   using Dist   = std::bernoulli_distribution;
   
@@ -55,7 +57,7 @@ private:
 
 };
 
-export template <>
+template <>
 struct std::formatter<RewriteRule> {
   std::string sep = "→";
   template<class ParseContext>
@@ -80,3 +82,5 @@ struct std::formatter<RewriteRule> {
       return std::ranges::copy(std::move(out).str(), ctx.out()).out;
   }
 };
+
+}

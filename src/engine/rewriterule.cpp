@@ -15,7 +15,7 @@ auto RewriteRule::parse(
 ) noexcept -> RewriteRule {
   return {
     Grid<Input>::parse(input, [&unions](auto raw) noexcept -> Input {
-      return raw == IGNORED_SYMBOL ? Input {} : Input { unions.contains(raw) ? unions.at(raw) : std::set{ raw } };
+      return raw == IGNORED_SYMBOL ? Input {} : Input { unions.contains(raw) ? unions.at(raw) : std::unordered_set{ raw } };
     }),
     Grid<Output>::parse(output, [](auto raw) noexcept -> Output {
       return raw == IGNORED_SYMBOL ? Output {} : Output { raw };
@@ -35,7 +35,7 @@ RewriteRule::RewriteRule(Grid<Input>&& _input, Grid<Output>&& _output, double p,
       | stdv::transform([](auto&& p) noexcept {
           auto [i, u] = p;
           // TODO this must change when fixing size of state representation
-          return i.value_or(std::set{ IGNORED_SYMBOL }) 
+          return i.value_or(std::unordered_set{ IGNORED_SYMBOL }) 
             | stdv::transform([u](auto c) noexcept {
                 return std::tuple{ c, u };
             });

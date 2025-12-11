@@ -6,15 +6,18 @@ import grid;
 import potentials;
 import engine.rewriterule;
 
+using charset = std::unordered_set<char>;
+
 export {
+
 struct Observe;
 using Observes = std::unordered_map<char, Observe>;
 
-using Future = Grid<std::unordered_set<char>>;
+using Future = Grid<charset>;
 
 struct Observe {
-  std::optional<char>      from;
-  std::unordered_set<char> to;
+  std::optional<char> from;
+  charset             to;
 
   static auto future(std::vector<Change<char>>& changes, std::optional<Future>& future, const Grid<char>& grid, const Observes& observes) noexcept -> void;
   static auto backward_potentials(Potentials& potentials, const Future& future, const std::span<const RewriteRule> rules) noexcept -> void;

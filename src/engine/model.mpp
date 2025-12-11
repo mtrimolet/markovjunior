@@ -5,11 +5,13 @@ import std;
 import engine.rewriterule;
 export import engine.runner;
 
+using Unions  = RewriteRule::Unions;
+
 export
 struct Model {
   // std::string title;
   std::string symbols;
-  RewriteRule::Unions unions;
+  Unions unions;
   bool origin;
   NodeRunner program;
   bool halted = false;
