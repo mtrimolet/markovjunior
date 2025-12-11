@@ -1,6 +1,7 @@
 module;
 #include <functional>
 #include <utility>
+#include <cassert>
 export module mo_function;
 // import std;
 
