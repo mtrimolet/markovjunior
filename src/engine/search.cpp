@@ -53,7 +53,7 @@ auto Search::trajectory(
   Search::forward_potentials(forward, grid, rules);
   
   candidates.emplace_back(
-    grid, -1, 0,
+    auto{ grid }, -1, 0,
     Search::backward_delta(backward, grid),
     Search::forward_delta(forward, future) 
   );
@@ -68,7 +68,7 @@ auto Search::trajectory(
   }
 
   auto visited = stdv::zip(
-    candidates | stdv::transform(&Candidate::state),
+    candidates | stdv::transform([](const auto& c) static noexcept { return auto{ c.state }; }),
     stdv::iota(std::size_t{ 0u })
   )
     | stdr::to<std::unordered_map>();
@@ -87,7 +87,7 @@ auto Search::trajectory(
     auto [score, parentIndex]  = q.top();
     const auto& parent = candidates[parentIndex];
 
-    for (auto childState : parent.children(rules, all)) {
+    for (auto& childState : parent.children(rules, all)) {
       if (visited.contains(childState)) {
         auto childIndex = visited.at(childState);
 
@@ -114,11 +114,11 @@ auto Search::trajectory(
         }
 
         auto childIndex = stdr::size(candidates);
-        visited.emplace(childState, childIndex);
+        visited.emplace(auto{ childState }, childIndex);
         candidates.emplace_back(
-          childState, parentIndex, parent.depth + 1,
-          backward_estimate,
-          forward_estimate
+          auto{ childState },
+          parentIndex, parent.depth + 1,
+          backward_estimate, forward_estimate
         );
 
         auto& child = candidates[childIndex];
@@ -149,7 +149,7 @@ auto Search::trajectory(
        candidate->parentIndex >= 0;
        candidate = stdr::next(stdr::cbegin(candidates), candidate->parentIndex)
   ) {
-    traj.emplace(stdr::begin(traj), candidate->state);
+    traj.emplace(stdr::begin(traj), std::move(candidate->state));
   }
 }
 
@@ -237,7 +237,7 @@ auto Candidate::children(std::span<const RewriteRule> rules, bool all) const -> 
     //   overlaping matches induce a combinatoric of substates when applied concurrently
     //     cartesian product of the overlaping rules grouped by joined overlapping area
     // mock:
-    auto common_substate = state;
+    auto common_substate = auto{ state };
     stdr::for_each(
       matches
         | stdv::transform(std::bind_back(&Match::changes, common_substate))
@@ -251,7 +251,7 @@ auto Candidate::children(std::span<const RewriteRule> rules, bool all) const -> 
     //   find u : location of hitgrid with highest nonzero value
     //   if none, we're done with this recursion :
     //       apply current sequence and push result
-    result.push_back(common_substate);
+    result.emplace_back(std::move(common_substate));
     //   for each match m hitting u :
     //     recurse enumeration with :
     //       hitgrid decremented on m.area
@@ -265,7 +265,7 @@ auto Candidate::children(std::span<const RewriteRule> rules, bool all) const -> 
     result.append_range(
       matches
         | stdv::transform([&state = state](auto&& m) {
-          auto newstate = state;
+          auto newstate = auto{ state };
           stdr::for_each(
             m.changes(newstate),
             [&newstate](auto&& c) {

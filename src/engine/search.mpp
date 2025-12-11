@@ -14,6 +14,7 @@ export {
 
 using Trajectory = std::vector<Grid<char>>;
 
+// TODO fix search engine so it doesn't need to copy grid (and it does so very intensively)
 struct Search {
   static auto trajectory(Trajectory &traj, const Future &future,
                          const Grid<char> &grid, std::span<const RewriteRule> rules,
@@ -27,6 +28,7 @@ struct Search {
 };
 
 struct Candidate {
+  // TODO maybe we should avoid grid copy and use rules-indexed coordinates
   Grid<char> state;
   std::size_t parentIndex, depth;
   double backward, forward;

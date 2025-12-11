@@ -82,7 +82,8 @@ struct Grid {
   : extents{}, values{}
   {}
 
-  constexpr Grid(const Grid& other) noexcept = delete;
+  // TODO fix search engine so it doesn't need to copy grid (and it does so very intensively)
+  constexpr explicit Grid(const Grid& other) noexcept = default;
   constexpr auto operator=(const Grid& other) noexcept-> Grid&  = delete;
   constexpr Grid(Grid&& other) noexcept = default;
   constexpr auto operator=(Grid&& other) noexcept-> Grid&  = default;
