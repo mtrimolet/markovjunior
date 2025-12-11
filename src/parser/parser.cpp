@@ -18,72 +18,89 @@ constexpr auto is_tag(std::string_view tag) noexcept -> decltype(auto) {
   };
 }
 
+auto get_string(const pugi::xml_node& xnode, auto name) -> std::string_view {
+  auto attr = xnode.attribute(name);
+  
+  stk::ensures(
+    attr,
+    std::format("missing '{}' attribute in '{}' node [:{}]",
+                name, xnode.name(), xnode.offset_debug())
+  );
+
+  auto result = std::string_view{ attr.as_string() };
+
+  stk::ensures(
+    not stdr::empty(result),
+    std::format("empty '{}' attribute in '{}' node [:{}]",
+                name, xnode.name(), xnode.offset_debug())
+  );
+
+  return result;
+}
+
+auto get_char(const pugi::xml_node& xnode, auto name) -> char {
+  auto result = get_string(xnode, name);
+
+  stk::ensures(
+    stdr::size(result) == 1,
+    std::format("only one character allowed for '{}' attribute of '{}' node [:{}]",
+                name, xnode.name(), xnode.offset_debug())
+  );
+
+  return result[0];
+}
+
+auto get_optchar(const pugi::xml_node& xnode, auto name) -> std::optional<char> {
+  return xnode.attribute(name) ? std::optional{ get_char(xnode, name) } : std::nullopt;
+}
+
+auto get_charset(const pugi::xml_node& xnode, auto name) -> std::unordered_set<char> {
+  auto result_str = get_string(xnode, name);
+  auto result = result_str | stdr::to<std::unordered_set>();
+
+  stk::ensures(
+    stdr::size(result) == stdr::size(result_str),
+    std::format("duplicate value in '{}' attribute of '{}' node [:{}]",
+                name, xnode.name(), xnode.offset_debug())
+  );
+
+  return result;
+}
+
 auto Model(const pugi::xml_document& xmodel) noexcept -> ::Model {
   const auto& xnode = xmodel.first_child();
 
-  stk::ensures(
-    xnode.attribute("values"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "values", "[root]", xnode.offset_debug())
-  );
-  auto symbols = std::string_view{ xnode.attribute("values").as_string() };
-  stk::ensures(
-    not stdr::empty(symbols),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "values", "[root]", xnode.offset_debug())
-  );
-  // ensure no duplicate
-  auto origin = xnode.attribute("origin").as_bool(false);
+  auto symbols = get_string(xnode, "values");
 
   auto unions = RewriteRule::Unions{};
-  unions.emplace(RewriteRule::IGNORED_SYMBOL, symbols | stdr::to<std::set>());
+  unions.emplace(RewriteRule::IGNORED_SYMBOL, symbols | stdr::to<std::unordered_set>());
   unions.insert_range(symbols | stdv::transform([](auto c) static noexcept { 
-    return std::tuple{ c, std::set{ c } };
+    return std::pair{ c, std::unordered_set{ c } };
   }));
 
   auto program = NodeRunner(xnode, unions);
-  if (const auto p = program.target<TreeRunner>(); p == nullptr)
-    program = TreeRunner{ TreeRunner::Mode::MARKOV, { std::move(program) } };
+  if (not std::holds_alternative<TreeRunner>(program)) {
+    // program = TreeRunner{ TreeRunner::Mode::MARKOV, { std::move(program) } };
+    //                                                 ^ error: no matching function for call to '__construct_at'
+    auto nodes = std::vector<::NodeRunner>{};
+    nodes.emplace_back(std::move(program));
+    program = TreeRunner{ TreeRunner::Mode::MARKOV, std::move(nodes) };
+  }
 
   return ::Model{
     // title,
-    std::string{ symbols }, std::move(unions),
-    std::move(origin),
+    std::string{ symbols },
+    std::move(unions),
+    xnode.attribute("origin").as_bool(false),
     std::move(program)
   };
 }
 
 auto Union(const pugi::xml_node& xnode) noexcept -> decltype(auto) {
-  stk::ensures(
-    xnode.attribute("symbol"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "symbol", "union", xnode.offset_debug())
-  );
-  auto symbol_str = std::string_view{ xnode.attribute("symbol").as_string() };
-  stk::ensures(
-    not stdr::empty(symbol_str),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "symbol", "union", xnode.offset_debug())
-  );
-  stk::ensures(
-    stdr::size(symbol_str) == 1,
-    std::format("only one character allowed for '{}' attribute of '{}' node [:{}]",
-                "symbol", "union", xnode.offset_debug())
-  );
+  auto symbol = get_char(xnode, "symbol");
+  auto values = get_charset(xnode, "values");
 
-  stk::ensures(
-    xnode.attribute("values"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "values", "union", xnode.offset_debug())
-  );
-  auto values = std::string_view{ xnode.attribute("values").as_string() };
-  stk::ensures(
-    not stdr::empty(values),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "values", "union", xnode.offset_debug())
-  );
-
-  return std::tuple{ symbol_str[0], std::move(values) | stdr::to<std::set>() };
+  return std::tuple{ symbol, std::move(values) };
 }
 
 auto NodeRunner(
@@ -100,7 +117,7 @@ auto NodeRunner(
    or tag == "markov"s
   ) {
     auto mode = tag == "sequence"s ? TreeRunner::Mode::SEQUENCE : TreeRunner::Mode::MARKOV;
-    return TreeRunner{
+    return { TreeRunner{
       mode,
       {
         std::from_range,
@@ -108,16 +125,16 @@ auto NodeRunner(
           | stdv::filter(std::not_fn(is_tag("union")))
           | stdv::transform(std::bind_back(NodeRunner, unions, symmetry))
       }
-    };
+    } };
   }
   if (tag == "one"s
    or tag == "prl"s
    or tag == "all"s
   ) {
-    return RuleRunner{
+    return { RuleRunner{
       RuleNode(xnode, unions, symmetry),
       xnode.attribute("steps").as_uint(0)
-    };
+    } };
   }
 
   stk::ensures(false, std::format("unknown tag '{}' [:{}]",
@@ -174,34 +191,13 @@ auto Rule(
   const pugi::xml_node& xnode,
   const RewriteRule::Unions& unions
 ) noexcept -> ::RewriteRule {
-  stk::ensures(
-    xnode.attribute("in"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "in", "[rule]", xnode.offset_debug())
-  );
-  auto input = std::string_view{ xnode.attribute("in").as_string() };
-  stk::ensures(
-    not stdr::empty(input),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "in", "[rule]", xnode.offset_debug())
-  );
-
-  stk::ensures(
-    xnode.attribute("out"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "out", "[rule]", xnode.offset_debug())
-  );
-  auto output = std::string_view{ xnode.attribute("out").as_string() };
-  stk::ensures(
-    not stdr::empty(output),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "out", "[rule]", xnode.offset_debug())
-  );
+  auto input  = get_string(xnode, "in");
+  auto output = get_string(xnode, "out");
 
   stk::ensures(
     stdr::size(input) == stdr::size(output),
     std::format("attributes '{}' and '{}' of '{}' node must be of same shape [:{}]",
-                "in", "out", "[rule]", xnode.offset_debug())
+                "in", "out", xnode.name(), xnode.offset_debug())
   );
 
   return RewriteRule::parse(
@@ -233,34 +229,8 @@ auto Rules(
 }
 
 auto Field(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Field> {
-  stk::ensures(
-    xnode.attribute("for"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "for", "field", xnode.offset_debug())
-  );
-  auto _for = std::string_view{ xnode.attribute("for").as_string() };
-  stk::ensures(
-    not stdr::empty(_for),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "for", "field", xnode.offset_debug())
-  );
-  stk::ensures(
-    stdr::size(_for) == 1,
-    std::format("only one character allowed for '{}' attribute of '{}' node [:{}]",
-                "for", "field", xnode.offset_debug())
-  );
-
-  stk::ensures(
-    xnode.attribute("on"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "on", "field", xnode.offset_debug())
-  );
-  auto substrate = std::string_view{ xnode.attribute("on").as_string() };
-  stk::ensures(
-    not stdr::empty(substrate),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "on", "field", xnode.offset_debug())
-  );
+  auto _for = get_char(xnode, "for");
+  auto substrate = get_charset(xnode, "on");
 
   stk::ensures(
     xnode.attribute("from") or xnode.attribute("to"),
@@ -274,21 +244,14 @@ auto Field(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Field> {
   );
 
   auto inversed = not xnode.attribute("to");
-  auto zero = std::string_view{ xnode.attribute("from").as_string(xnode.attribute("to").as_string()) };
-  stk::ensures(
-    not stdr::empty(zero),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                inversed ? "from" : "to", "field", xnode.offset_debug())
-  );
+  auto zero = inversed ? get_charset(xnode, "from") : get_charset(xnode, "to");
 
   return std::pair{
-    _for[0],
+    _for,
     ::Field{
       xnode.attribute("recompute").as_bool(false),
       xnode.attribute("essential").as_bool(false),
-      inversed,
-      { std::from_range, substrate },
-      { std::from_range, zero }
+      inversed, substrate, zero
     }
   };
 }
@@ -300,40 +263,14 @@ auto Fields(const pugi::xml_node& xnode) noexcept -> ::Fields {
 }
 
 auto Observe(const pugi::xml_node& xnode) noexcept -> std::pair<char, ::Observe> {
-  stk::ensures(
-    xnode.attribute("value"),
-    std::format("missing '{}' attribute in '{}' node [:{}]",
-                "value", "observe", xnode.offset_debug())
-  );
-  auto value = std::string_view{ xnode.attribute("value").as_string() };
-  stk::ensures(
-    not stdr::empty(value),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "value", "observe", xnode.offset_debug())
-  );
-  stk::ensures(
-    stdr::size(value) == 1,
-    std::format("only one character allowed value '{}' attribute of '{}' node [:{}]",
-                "value", "observe", xnode.offset_debug())
-  );
-
-  auto from = std::string_view{ xnode.attribute("from").as_string() };
-  stk::ensures(
-    not xnode.attribute("from") or not stdr::empty(from),
-    std::format("empty '{}' attribute in '{}' node [:{}]",
-                "from", "observe", xnode.offset_debug())
-  );
-  stk::ensures(
-    not xnode.attribute("from") or stdr::size(from) == 1,
-    std::format("only one character allowed for '{}' attribute of '{}' node [:{}]",
-                "from", "observe", xnode.offset_debug())
-  );
+  auto value = get_char(xnode, "value");
+  auto from  = get_optchar(xnode, "from");
 
   return std::pair{
-    value[0],
+    value,
     ::Observe{
-      not xnode.attribute("from") ? std::nullopt : std::optional{ from[0] },
-      { std::from_range, std::string{ xnode.attribute("to").as_string() } }
+      from,
+      get_charset(xnode, "to")
     }
   };
 }
@@ -347,41 +284,16 @@ auto Palette(const pugi::xml_document& xpalette) noexcept -> ColorPalette {
     std::from_range,
     xpalette.child("colors").children("color")
       | stdv::transform([](const auto& xcolor) static noexcept {
-          stk::ensures(
-            xcolor.attribute("symbol"),
-            std::format("missing '{}' attribute in '{}' node [:{}]",
-                        "symbol", "color", xcolor.offset_debug())
-          );
-          auto symbol_str = std::string_view{ xcolor.attribute("symbol").as_string() };
-          stk::ensures(
-            not stdr::empty(symbol_str),
-            std::format("empty '{}' attribute in '{}' node [:{}]",
-                        "symbol", "color", xcolor.offset_debug())
-          );
-          stk::ensures(
-            stdr::size(symbol_str) == 1,
-            std::format("only one character allowed for '{}' attribute of '{}' node [:{}]",
-                        "symbol", "color", xcolor.offset_debug())
-          );
+          auto symbol = get_char(xcolor, "symbol");
+          auto value  = get_string(xcolor, "value");
         
-          stk::ensures(
-            xcolor.attribute("value"),
-            std::format("missing '{}' attribute in '{}' node [:{}]",
-                        "value", "color", xcolor.offset_debug())
-          );
-          auto value = std::string_view{ xcolor.attribute("value").as_string() };
-          stk::ensures(
-            not stdr::empty(value),
-            std::format("empty '{}' attribute in '{}' node [:{}]",
-                        "value", "color", xcolor.offset_debug())
-          );
           stk::ensures(
             stdr::size(value) == 6u,
             std::format("attribute '{}' should be a rgb hex value in '{}' node [:{}]",
                         "value", "color", xcolor.offset_debug())
           );
         
-          return std::tuple{ symbol_str[0], Color{
+          return std::tuple{ symbol, Color{
             fromBase<stk::u8>({ stdr::cbegin(value),     stdr::cbegin(value) + 2 }, 16),
             fromBase<stk::u8>({ stdr::cbegin(value) + 2, stdr::cbegin(value) + 4 }, 16),
             fromBase<stk::u8>({ stdr::cbegin(value) + 4, stdr::cend(value)       }, 16),
