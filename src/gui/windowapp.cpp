@@ -87,7 +87,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
   ilog("start program thread");
   auto program_thread = std::jthread{ [&grid, &model, &controls](std::stop_token stop) mutable noexcept {
     auto last_time = clk::now();
-    for (auto _ : model.program(grid)) { // TODO replace with a while loop conditioned on the stop token, 
+    for (auto _ : model.program.visit([&grid](auto& f) noexcept { return f(grid); })) { // TODO replace with a while loop conditioned on the stop token, 
       if (stop.stop_requested()) break;  //      and put the program tick inside (instead of async generator)
 
       controls.rate_limit(last_time);

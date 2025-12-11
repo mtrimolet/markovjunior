@@ -3,6 +3,7 @@ export module engine.runner;
 import std;
 import stormkit.core;
 import utils;
+import mo_function;
 
 import grid;
 import engine.rulenode;
@@ -19,21 +20,16 @@ struct RuleRunner {
   auto operator()(TracedGrid<char>& grid) noexcept -> std::generator<bool>;
 };
 
-using NodeRunner = std::function<std::generator<bool>(TracedGrid<char>&)>;
-
-auto reset(NodeRunner& n) noexcept -> void;
-auto current(const NodeRunner& n) noexcept -> const RuleNode*;
+struct TreeRunner;
+using NodeRunner = std::variant<RuleRunner, TreeRunner>;
 
 struct TreeRunner {
   enum struct Mode { MARKOV, SEQUENCE };
   Mode mode;
 
   std::vector<NodeRunner> nodes;
-  decltype(std::ranges::begin(nodes)) current_node = std::ranges::end(nodes);
-
-  constexpr TreeRunner(Mode _mode, std::vector<NodeRunner>&& _nodes) noexcept 
-  :  mode{_mode}, nodes{std::move(_nodes)}
-  {}
+  using NodeIterator = std::vector<NodeRunner>::iterator;
+  NodeIterator current_node = std::ranges::end(nodes);
 
   constexpr auto current_index() const noexcept -> stk::ioffset {
     return std::ranges::distance(std::ranges::begin(nodes), current_node);
@@ -41,5 +37,8 @@ struct TreeRunner {
 
   auto operator()(TracedGrid<char>& grid) noexcept -> std::generator<bool>;
 };
+
+auto reset(NodeRunner& n) noexcept -> void;
+auto current(const NodeRunner& n) noexcept -> const RuleNode*;
 
 }

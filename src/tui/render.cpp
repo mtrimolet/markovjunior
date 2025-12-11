@@ -220,10 +220,10 @@ Element treeRunner(const TreeRunner& node, const Palette& palette, bool selected
 
 Element nodeRunner(const NodeRunner& node, const Palette& palette, bool selected) noexcept {
   Element e;
-  if (const auto& t = node.target<TreeRunner>(); t != nullptr) {
+  if (const auto& t = std::get_if<TreeRunner>(&node); t != nullptr) {
     e = treeRunner(*t, palette, selected);
   }
-  else if (const auto& r = node.target<RuleRunner>(); r != nullptr) {
+  else if (const auto& r = std::get_if<RuleRunner>(&node); r != nullptr) {
     e = ruleRunner(*r, palette);
   }
   else {

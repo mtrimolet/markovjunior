@@ -65,7 +65,7 @@ auto ConsoleApp::operator()(std::span<const std::string_view> args) noexcept -> 
   auto program_thread = std::jthread{ [&grid, &model, &controls](std::stop_token stop) mutable noexcept {
     auto last_time = clk::now();
     // swap the two next lines
-    for (auto _ : model.program(grid)) {
+    for (auto _ : model.program.visit([&grid](auto& f) noexcept { return f(grid); })) {
       animation::RequestAnimationFrame();
 
       if (stop.stop_requested()) break;
