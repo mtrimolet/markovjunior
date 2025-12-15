@@ -321,20 +321,24 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
     .QueueFamily = 0,
     .Queue = raster_queue.native_handle(),
     .DescriptorPool = descriptor_pool.native_handle(),
-    .RenderPass = render_pass.native_handle(),
+    .DescriptorPoolSize = 0,
     .MinImageCount = BUFFERING_COUNT,
     .ImageCount = BUFFERING_COUNT,
-    .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
     .PipelineCache = nullptr,
-    .Subpass = 0,
-    .DescriptorPoolSize = 0,
+    .PipelineInfoMain = {
+      .RenderPass = render_pass.native_handle(),
+      .Subpass = 0,
+      .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+      .PipelineRenderingCreateInfo = {},
+    },
     .UseDynamicRendering = false,
-    .PipelineRenderingCreateInfo = {},
     .Allocator = nullptr,
     .CheckVkResultFn = [](VkResult err) static noexcept {
       stk::expects(err == 0, std::format("[vulkan] Error: VkResult = {}", err));
     },
     .MinAllocationSize = 1024 * 1024,
+    .CustomShaderVertCreateInfo = {},
+    .CustomShaderFragCreateInfo = {},
   };
   ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_1, stkg::imgui_vk_loader, std::bit_cast<void*>(&device));
   ImGui_ImplVulkan_Init(&init_info);
