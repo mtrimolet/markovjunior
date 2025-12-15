@@ -52,13 +52,15 @@ auto Observe::backward_potentials(Potentials& potentials, const Future& future, 
       auto [u, c] = front;
       auto p = potentials.at(c)[u];
       return stdv::iota(0u, stdr::size(rules))
+        | stdv::filter([p_area = potentials.at(c).area(), &rules, u](auto r) noexcept {
+            auto ru_area = rules[r].input.area() + u;
+            return p_area.meet(ru_area) == ru_area;
+        })
         | stdv::transform([&rules, u](auto r) noexcept {
             return Match{ rules, u, r };
         })
-        | stdv::filter([&potentials, p](const auto& m) noexcept { return m.backward_match(potentials, p); })
-        | stdv::transform([&potentials, p](const auto& m) noexcept { return m.backward_changes(potentials, p + 1); })
-        // | stdv::filter(std::bind_back(&Match::backward_match, potentials, p))
-        // | stdv::transform(std::bind_back(&Match::backward_changes, potentials, p + 1))
+        | stdv::filter(std::bind_back(&Match::backward_match, std::cref(potentials), p))
+        | stdv::transform(std::bind_back(&Match::backward_changes, std::cref(potentials), p + 1))
         | stdv::join
         | stdv::transform([&extents, &potentials](auto&& ch) noexcept {
             auto [c, p] = ch.value;
