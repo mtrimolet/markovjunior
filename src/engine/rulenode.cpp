@@ -201,10 +201,15 @@ auto RuleNode::pick(MatchIterator begin, MatchIterator end) noexcept -> MatchIte
 auto RuleNode::infer(const Grid<char>& grid) noexcept -> void {
   if (stdr::empty(potentials)) return;
   
+  auto min_w = std::numeric_limits<double>::infinity();
+
   stdr::for_each(
     active, stdr::end(matches),
-    [&potentials = potentials, &grid](auto& m) noexcept {
+    [&potentials = potentials, &grid, &min_w](auto& m) mutable noexcept {
       m.w = m.delta(grid, potentials);
+      if (is_normal(m.w)) {
+        min_w = std::min(min_w, m.w);
+      }
   });
 
   active = stdr::begin(stdr::partition(
@@ -213,14 +218,20 @@ auto RuleNode::infer(const Grid<char>& grid) noexcept -> void {
     &Match::w
   ));
 
-  stdr::for_each(
-    active, stdr::end(matches),
-    [temperature = temperature > 0.0 ? temperature : 1.0/* ,
-    first_w = active->w */]
-    (auto& m) noexcept {
-      /** Boltzmann/Softmax distribution */
-      // m.w = std::exp(-(first_w - m.w) / temperature);
-      m.w = std::exp(-m.w / temperature);
-    }
-  );
+  if (temperature <= 0.0)
+    stdr::for_each(
+      active, stdr::end(matches),
+      [](auto& m) noexcept {
+        m.w = m.w * 0.001;
+      }
+    );
+  else
+    stdr::for_each(
+      active, stdr::end(matches),
+      [min_w, &temperature = temperature]
+      (auto& m) noexcept {
+        /** Boltzmann Softmax distribution */
+        m.w = std::exp(-(m.w - min_w) / temperature);
+      }
+    );
 }

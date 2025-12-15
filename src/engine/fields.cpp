@@ -44,7 +44,13 @@ auto Field::potentials(const Fields& fields, const Grid<char>& grid, Potentials&
       continue;
     }
 
-    potentials.insert_or_assign(c, Potential{ grid.extents, std::numeric_limits<double>::quiet_NaN() });
+    if (potentials.contains(c)) {
+      stdr::fill(potentials.at(c).values, std::numeric_limits<double>::quiet_NaN());
+      // stdr::fill(potentials.at(c), std::numeric_limits<double>::quiet_NaN());
+    }
+    else {
+      potentials.emplace(c, Potential{ grid.extents, std::numeric_limits<double>::quiet_NaN() });
+    }
 
     f.potential(grid, potentials.at(c));
 
