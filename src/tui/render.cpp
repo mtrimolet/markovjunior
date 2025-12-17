@@ -236,7 +236,7 @@ Element nodeRunner(const NodeRunner& node, const Palette& palette, bool selected
 Element symbols(std::string_view values, const Palette& palette) noexcept {
   auto texture = Image{ 8 * 2, 1 + static_cast<int>(stdr::size(values)) / 8 };
   stdr::for_each(
-    stdv::zip(values, mdiota(Area3{ {}, { 1, texture.dimy(), texture.dimx() / 2 } })),
+    stdv::zip(values, mdiota(Area3{ {}, { texture.dimx() / 2, texture.dimy(), 1 } })),
     [&](auto&& cu) noexcept {
       auto [character, u] = cu;
       auto& pixel0 = texture.PixelAt(u.x * 2, u.y);
