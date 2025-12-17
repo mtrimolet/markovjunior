@@ -4,8 +4,7 @@ import std;
 
 import grid;
 import potentials;
-
-using charset = std::unordered_set<char>;
+import engine.rewriterule;
 
 export {
 

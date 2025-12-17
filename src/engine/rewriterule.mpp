@@ -1,15 +1,13 @@
 export module engine.rewriterule;
 
 import std;
-import stormkit.core;
 import geometry;
 
 import grid;
 
-// namespace stk = stormkit;
-using charset = std::unordered_set<char>;
-
 export {
+
+using charset = std::unordered_set<char>;
 
 struct RewriteRule {
   using Input  = std::optional<charset>;

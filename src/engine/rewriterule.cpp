@@ -1,5 +1,6 @@
 module engine.rewriterule;
 
+import stormkit.core;
 import log;
 import utils;
 

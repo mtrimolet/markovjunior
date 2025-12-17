@@ -6,8 +6,6 @@ import grid;
 import potentials;
 import engine.rewriterule;
 
-using charset = std::unordered_set<char>;
-
 export {
 
 struct Observe;
