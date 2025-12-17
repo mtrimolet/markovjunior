@@ -9,6 +9,8 @@ import potentials;
 import controls;
 
 import engine.rewriterule;
+import engine.fields;
+import engine.observes;
 import engine.rulenode;
 import engine.runner;
 import engine.model;
@@ -20,11 +22,11 @@ export namespace render {
 using Palette = std::unordered_map<char, Color>;
 
 Element grid(const TracedGrid<char>& g, const Palette& palette) noexcept;
-Element potential_grid(const ::Potential& g) noexcept;
+Element potential(const Potential& g) noexcept;
 
 Element rule(const RewriteRule& rule, const Palette& palette) noexcept;
-
-// Element ruleNode(const RuleNode& node, const Palette& palette) noexcept;
+Element field(const Field& field, const Palette& palette) noexcept;
+Element observe(const Observe& observe, const Palette& palette) noexcept;
 
 Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept;
 Element treeRunner(const TreeRunner& node, const Palette& palette, bool selected = false) noexcept;

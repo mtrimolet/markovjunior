@@ -26,7 +26,21 @@ Decorator window_wrap(std::string title) {
   };
 }
 
-Element grid(const ::TracedGrid<char>& g, const Palette& palette) noexcept {
+Element block_symbol(char c, const Palette& palette) noexcept {
+  auto col = palette.contains(c) ? palette.at(c) : Color::Default;
+  return text("  ") | color(col) | inverted;
+}
+
+Element named_symbol(char c, const Palette& palette) noexcept {
+  auto col = palette.contains(c) ? palette.at(c) : Color::Default;
+  return text(std::string{ c }) | color(col) | inverted;
+}
+
+Element symbolset(charset s, const Palette& palette) noexcept {
+  return hbox({ std::from_range, s | stdv::transform(std::bind_back(named_symbol, palette)) });
+}
+
+Element grid(const TracedGrid<char>& g, const Palette& palette) noexcept {
   auto texture = Image{
     static_cast<int>(g.extents.extent(2)) * 2,
     static_cast<int>(g.extents.extent(1))
@@ -52,7 +66,7 @@ Element grid(const ::TracedGrid<char>& g, const Palette& palette) noexcept {
     | size(HEIGHT, EQUAL, h);
 }
 
-Element rule(const ::RewriteRule& rule, const Palette& palette) noexcept {
+Element rule(const RewriteRule& rule, const Palette& palette) noexcept {
   auto input = Image{
     static_cast<int>(rule.input.extents.extent(2)) * 2,
     static_cast<int>(rule.input.extents.extent(1))
@@ -110,7 +124,7 @@ Element rule(const ::RewriteRule& rule, const Palette& palette) noexcept {
   });
 }
 
-Element potential_grid(const ::Potential& g) noexcept {
+Element potential(const Potential& g) noexcept {
   auto texture = Image{
     static_cast<int>(g.extents.extent(2)) * 2,
     static_cast<int>(g.extents.extent(1))
@@ -165,11 +179,23 @@ Element potential_grid(const ::Potential& g) noexcept {
 }
 
 Element potential(char c, const Potential& pot, const Palette& palette) noexcept {
-  auto col = palette.contains(c) ? palette.at(c) : Color::Default;
-  return window(
-    text(std::string{ c }) | ftxui::color(col) | inverted,
-    potential_grid(pot)
-  );
+  return window(named_symbol(c, palette), potential(pot));
+}
+
+Element field(const Field& field, const Palette& palette) noexcept {
+  return hbox({
+    symbolset(field.substrate, palette) | border,
+    text(field.inversed ? "←" : "→") | vcenter,
+    symbolset(field.zero, palette) | border,
+  });
+}
+
+Element observe(const Observe& observe, const Palette& palette) noexcept {
+  return hbox({
+    observe.from ? named_symbol(*observe.from, palette) | border : emptyElement(),
+    text("→") | vcenter,
+    symbolset(observe.to, palette) | border,
+  });
 }
 
 Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
@@ -177,10 +203,10 @@ Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
            : node.rulenode.mode == RuleNode::Mode::ALL ? "all"
                                                        : "prl";
 
-  auto steps = node.steps != 0 ? std::format("{}", node.steps)
-                               : std::string{ "∞" };
+  auto steps = text(node.steps != 0 ? std::format("({}/{})", node.step, node.steps)
+                                    : std::format("({})", node.step));
 
-  auto elements = Elements{};
+  auto erules = Elements{};
   for(
     auto irule = stdr::cbegin(node.rulenode.rules);
     irule != stdr::cend(node.rulenode.rules);
@@ -189,16 +215,32 @@ Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
       irule + 1, stdr::cend(node.rulenode.rules),
       std::not_fn(&RewriteRule::is_copy)
     );
-    elements.push_back(hbox({
+    erules.push_back(hbox({
       rule(*irule, palette),
       text(std::format("x{}", stdr::distance(irule, next_rule))),
     }));
     irule = next_rule;
   }
 
+  auto efields = Elements{};
+  for (const auto& [c, f] : node.rulenode.fields) {
+    efields.push_back(hbox({
+      hbox({ text("["), named_symbol(c, palette), text("]") }) | vcenter,
+      field(f, palette)
+    }));
+  }
+
+  auto eobserves = Elements{};
+  for (const auto& [c, o] : node.rulenode.observes) {
+    eobserves.push_back(hbox({
+      hbox({ text("("), named_symbol(c, palette), text(")") }) | vcenter,
+      observe(o, palette)
+    }));
+  }
+
   return vbox({
-    text(std::format("{} ({}/{})", tag, node.step, steps)),
-    hbox({ separator(), vbox(elements) })
+    hbox({ text(tag), steps }),
+    hbox({ separator(), vbox({ vbox(erules), vbox(efields), vbox(eobserves) }) })
   });
 }
 
@@ -254,7 +296,7 @@ Element symbols(std::string_view values, const Palette& palette) noexcept {
       | size(HEIGHT, EQUAL, h);
 }
 
-Element model(const ::Model& model, const Palette& palette) noexcept {
+Element model(const Model& model, const Palette& palette) noexcept {
   return vbox({
     window(
       text("symbols"),
@@ -350,8 +392,6 @@ Component WorldAndPotentials(const TracedGrid<char>& grid, const Model& model, c
         return;
       }
 
-      // ilog("refreshing {} -> {}", tabnames | stdv::drop(1), r ? stdv::keys(r->potentials) | stdr::to<std::vector>() : std::vector<char>{ });
-
       tabnames = { tabnames[0] };
       while (tabview->ChildCount() > 1) {
         tabview->ChildAt(1)->Detach();
@@ -361,14 +401,13 @@ Component WorldAndPotentials(const TracedGrid<char>& grid, const Model& model, c
         for (const auto& [sym, p] : r->potentials) {
           tabnames.push_back(std::format("{}", sym));
           tabview->Add(Renderer([&p]{
-            return potential_grid(p);
+            return potential(p);
           }));
         }
       }
 
       tabselect = node != r ? 0
         : std::min<int>(tabselect, stdr::size(tabnames) - 1);
-      // ilog("new select {}", tabselect);
 
       node = r;
     }
