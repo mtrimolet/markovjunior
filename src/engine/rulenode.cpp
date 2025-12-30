@@ -211,27 +211,22 @@ auto RuleNode::infer(const Grid<char>& grid) noexcept -> void {
         min_w = std::min(min_w, m.w);
       }
   });
-
-  active = stdr::begin(stdr::partition(
+  auto p = stdr::partition(
     active, stdr::end(matches),
     std::not_fn(is_normal),
     &Match::w
-  ));
+  );
+  dlog("rules: {}, found {}/{} match::w", stdr::size(rules), stdr::size(p), stdr::distance(active, stdr::end(matches)));
+  active = stdr::begin(p);
+  dlog("preweights {}", stdr::subrange(active, stdr::end(matches)) | stdv::transform(&Match::w) | stdr::to<std::vector>());
 
-  if (temperature <= 0.0)
-    stdr::for_each(
-      active, stdr::end(matches),
-      [](auto& m) noexcept {
-        m.w = m.w * 0.001;
-      }
-    );
-  else
-    stdr::for_each(
-      active, stdr::end(matches),
-      [min_w, &temperature = temperature]
-      (auto& m) noexcept {
-        /** Boltzmann Softmax distribution */
-        m.w = std::exp(-(m.w - min_w) / temperature);
-      }
-    );
+  stdr::for_each(
+    active, stdr::end(matches),
+    [min_w, &temperature = std::max(temperature, 0.1/*std::numeric_limits<double>::epsilon()*/)]
+    (auto& m) noexcept {
+      /** Boltzmann Softmax distribution */
+      m.w = std::exp(-(m.w - min_w) / temperature);
+    }
+  );
+  dlog("weights {}", stdr::subrange(active, stdr::end(matches)) | stdv::transform(&Match::w) | stdr::to<std::vector>());
 }

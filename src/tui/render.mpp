@@ -21,7 +21,7 @@ export namespace render {
 
 using Palette = std::unordered_map<char, Color>;
 
-Element grid(const TracedGrid<char>& g, const Palette& palette) noexcept;
+Element grid(const Grid<char>& g, const Palette& palette) noexcept;
 Element potential(const Potential& g) noexcept;
 
 Element rule(const RewriteRule& rule, const Palette& palette) noexcept;
@@ -36,6 +36,6 @@ Element symbols(std::string_view values, const Palette& palette) noexcept;
 
 Element model(const Model& node, const Palette& palette) noexcept;
 
-Component MainView(const TracedGrid<char>& grid, const Model& model, Controls& controls, const Palette& palette);
+Component MainView(const Grid<char>& grid, const Model& model, Controls& controls, const Palette& palette);
 
 }

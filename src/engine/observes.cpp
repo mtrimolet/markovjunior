@@ -1,5 +1,6 @@
 module engine.observes;
 
+import log;
 import geometry;
 import engine.match;
 
@@ -34,42 +35,52 @@ auto Observe::future(std::vector<Change<char>>& changes, std::optional<Future>& 
 }
 
 auto Observe::backward_potentials(Potentials& potentials, const Future& future, std::span<const RewriteRule> rules) noexcept -> void {
+  const auto update = [&extents = future.extents, &potentials](const auto& cu, auto p) noexcept {
+    const auto& [c, u] = cu;
+    if (not potentials.contains(c)) {
+      potentials.emplace(c, Potential{ extents, std::numeric_limits<double>::quiet_NaN() });
+    }
+    potentials.at(c)[u] = p;
+    return std::tuple{ c, u, p };
+  };
   propagate(
     stdv::zip(mdiota(future.area()), future)
-      | stdv::transform([&extents = future.extents, &potentials](const auto& p) noexcept {
-          auto [u, f] = p;
-          return f
-            | stdv::transform([&extents, u, &potentials](auto c) noexcept {
-                if (not potentials.contains(c)) {
-                  potentials.emplace(c, Potential{ extents, std::numeric_limits<double>::quiet_NaN() });
-                }
-                potentials.at(c)[u] = 0.0;
-                return std::tuple{ u, c };
-            });
+      | stdv::transform([](const auto& zero) static noexcept {
+          const auto& [u, f] = zero;
+          return f | stdv::transform([u](auto c) noexcept {
+            return std::tuple{ c, u };
+          });
       })
-      | stdv::join,
-    [&extents = future.extents, &potentials, &rules](auto&& front) noexcept {
-      auto [u, c] = front;
-      auto p = potentials.at(c)[u];
-      return stdv::iota(0u, stdr::size(rules))
-        | stdv::filter([p_area = potentials.at(c).area(), &rules, u](auto r) noexcept {
-            auto ru_area = rules[r].input.area() + u;
-            return p_area.meet(ru_area) == ru_area;
+      | stdv::join
+      | stdv::transform(std::bind_back(update, 0.0)),
+    [&update, &potentials, &rules](auto&& front) noexcept {
+      auto [c, u, p] = front;
+      const auto& potential = potentials.at(c);
+      return stdv::zip(rules, stdv::iota(0u))
+        | stdv::transform([p_area = potential.area(), u, c](const auto& v) noexcept {
+            const auto& [rule, r] = v;
+            return rule.get_oshifts(c)
+                 | stdv::transform(std::bind_front(std::minus<Area3::Offset>{}, u))
+                 | stdv::filter([p_area, r_area = rule.input.area()](auto u) noexcept {
+                     auto ru_area = r_area + u;
+                     return p_area.meet(ru_area) == ru_area;
+                 })
+                 | stdv::transform([r](auto u) noexcept {
+                     return std::tuple{ u, r };
+                 });
+
         })
-        | stdv::transform([&rules, u](auto r) noexcept {
-            return Match{ rules, u, r };
-        })
-        | stdv::filter(std::bind_back(&Match::backward_match, std::cref(potentials), p))
-        | stdv::transform(std::bind_back(&Match::backward_changes, std::cref(potentials), p + 1))
         | stdv::join
-        | stdv::transform([&extents, &potentials](auto&& ch) noexcept {
-            auto [c, p] = ch.value;
-            if (not potentials.contains(c)) {
-              potentials.emplace(c, Potential{ extents, std::numeric_limits<double>::quiet_NaN() });
-            }
-            potentials.at(c)[ch.u] = p;
-            return std::tuple{ ch.u, c };
-        });
+        | stdv::transform([rules](auto&& ur) noexcept {
+            return Match{ rules, std::get<0>(ur), std::get<1>(ur) };
+        })
+        | stdv::filter(std::bind_back(&Match::backward_match, std::cref(potentials), potential[u]))
+        | stdv::transform(std::bind_back(&Match::backward_changes, std::cref(potentials)))
+        | stdv::join
+        | stdv::transform([](auto&& ch) static noexcept {
+            return std::tuple{ ch.value, ch.u };
+        })
+        | stdv::transform(std::bind_back(update, p + 1.0));
     }
   );
 }

@@ -40,7 +40,7 @@ Element symbolset(charset s, const Palette& palette) noexcept {
   return hbox({ std::from_range, s | stdv::transform(std::bind_back(named_symbol, palette)) });
 }
 
-Element grid(const TracedGrid<char>& g, const Palette& palette) noexcept {
+Element grid(const Grid<char>& g, const Palette& palette) noexcept {
   auto texture = Image{
     static_cast<int>(g.extents.extent(2)) * 2,
     static_cast<int>(g.extents.extent(1))
@@ -203,8 +203,8 @@ Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
            : node.rulenode.mode == RuleNode::Mode::ALL ? "all"
                                                        : "prl";
 
-  auto steps = text(node.steps != 0 ? std::format("({}/{})", node.step, node.steps)
-                                    : std::format("({})", node.step));
+  auto steps = text(node.steps != 0 ? std::format(" ({}/{})", node.step, node.steps)
+                                    : std::format(" ({})", node.step));
 
   auto erules = Elements{};
   for(
@@ -217,7 +217,7 @@ Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
     );
     erules.push_back(hbox({
       rule(*irule, palette),
-      text(std::format("x{}", stdr::distance(irule, next_rule))),
+      text(std::format("x{}", stdr::distance(irule, next_rule))) | vcenter,
     }));
     irule = next_rule;
   }
@@ -343,9 +343,10 @@ struct GridScroll {
   T y;
 };
 
-Component WorldAndPotentials(const TracedGrid<char>& grid, const Model& model, const render::Palette& palette) {
+Component WorldAndPotentials(const Grid<char>& grid, const Model& model, const render::Palette& palette) {
   struct Impl : ComponentBase {
     const Model& model;
+    const render::Palette& palette;
     const RuleNode* node = nullptr;
 
     std::vector<std::string> tabnames = {};
@@ -354,15 +355,14 @@ Component WorldAndPotentials(const TracedGrid<char>& grid, const Model& model, c
     Component tabview;
     GridScroll<int> grid_scroll = { 0, 0 };
 
-    Impl(const TracedGrid<char>& grid, const Model& _model, const render::Palette& palette)
+    Impl(const Grid<char>& grid, const Model& _model, const render::Palette& _palette)
     : model{ _model },
+      palette{ _palette },
       tabnames{ { "World" } },
       tabtoggle{ Toggle(&tabnames, &tabselect) },
-      tabview{
-        Container::Tab({ Renderer([&grid, &palette]{
-          return render::grid(grid, palette);
-        }) }, &tabselect)
-      }
+      tabview{ Container::Tab({
+        Renderer(std::bind_front(render::grid, std::cref(grid), std::cref(palette)))
+      }, &tabselect) }
     {
       Add(Container::Vertical({
         tabtoggle,
@@ -398,11 +398,21 @@ Component WorldAndPotentials(const TracedGrid<char>& grid, const Model& model, c
       }
 
       if (r) {
+        if (r->future) {
+          tabnames.push_back("Future");
+          tabview->Add(Renderer([&future = *r->future, &palette = palette] {
+            return render::grid(
+              { std::from_range, future | stdv::transform([](const auto& s) noexcept {
+                return (s | stdr::to<std::vector>())[0];
+              }), future.extents },
+              palette
+            );
+          }));
+        }
+
         for (const auto& [sym, p] : r->potentials) {
           tabnames.push_back(std::format("{}", sym));
-          tabview->Add(Renderer([&p]{
-            return potential(p);
-          }));
+          tabview->Add(Renderer([&p] { return render::potential(p); }));
         }
       }
 
@@ -420,7 +430,7 @@ Component WorldAndPotentials(const TracedGrid<char>& grid, const Model& model, c
   return Make<Impl>(grid, model, palette);
 }
 
-Component MainView(const TracedGrid<char>& grid, const Model& model, Controls& controls, const Palette& palette) {
+Component MainView(const Grid<char>& grid, const Model& model, Controls& controls, const Palette& palette) {
   return Container::Horizontal({
     Container::Vertical({
       Renderer([]{
@@ -435,10 +445,11 @@ Component MainView(const TracedGrid<char>& grid, const Model& model, Controls& c
         return nodeRunner(model.program, palette)
           | vscroll_indicator
           | yframe
-          | window_wrap("program");
+          | window_wrap("program")
+          | yflex_shrink;
       }),
       ControlsView(controls)
-        | Renderer(window_wrap("controls") | size(HEIGHT, EQUAL, 9)),
+        | Renderer(window_wrap("controls") | notflex),
     }),
     Renderer([]{ return separator(); }),
     WorldAndPotentials(grid, model, palette)

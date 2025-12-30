@@ -71,6 +71,24 @@ auto RewriteRule::get_ishifts(char c) const noexcept -> std::vector<Area3::Offse
   return shifts;
 }
 
+auto RewriteRule::get_oshifts(char c) const noexcept -> std::vector<Area3::Offset>{
+  auto shifts = std::vector<Area3::Offset>{};
+
+  auto ignored_bucket = oshifts.bucket(IGNORED_SYMBOL);
+  auto bucket         = oshifts.bucket(c);
+
+  shifts.append_range(
+    stdr::subrange(oshifts.cbegin(ignored_bucket), oshifts.cend(ignored_bucket))
+      | stdv::transform(stk::monadic::get<1>())
+  );
+  shifts.append_range(
+    stdr::subrange(oshifts.cbegin(bucket), oshifts.cend(bucket))
+      | stdv::transform(stk::monadic::get<1>())
+  );
+
+  return shifts;
+}
+
 auto RewriteRule::operator==(const RewriteRule& other) const noexcept -> bool {
   return input    == other.input
      and output   == other.output

@@ -44,6 +44,7 @@ struct RewriteRule {
   /** Provides the relative area from inside which this rule would update the origin */
   auto backward_neighborhood() const noexcept -> Area3;
   auto get_ishifts(char c) const noexcept -> std::vector<Area3::Offset>;
+  auto get_oshifts(char c) const noexcept -> std::vector<Area3::Offset>;
 
   auto identity() const noexcept -> RewriteRule;
   auto xreflected() const noexcept -> RewriteRule;

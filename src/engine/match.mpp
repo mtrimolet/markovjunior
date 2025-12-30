@@ -35,8 +35,8 @@ struct Match {
   auto delta(const Grid<char>& grid, const Potentials& potentials) const noexcept -> double;
 
   auto backward_match(const Potentials& potentials, double p) const noexcept -> bool;
-  auto backward_changes(const Potentials& potentials, double p) const noexcept
-  -> std::vector<Change<std::tuple<char, double>>>;
+  auto backward_changes(const Potentials& potentials) const noexcept
+  -> std::vector<Change<char>>;
 
   auto forward_match(const Potentials& potentials, double p) const noexcept -> bool;
   auto forward_changes(const Potentials& potentials, double p) const noexcept

@@ -184,24 +184,23 @@ auto Match::forward_match(const Potentials& potentials, double p) const noexcept
   );
 }
 
-auto Match::backward_changes(const Potentials& potentials, double p) const noexcept
--> std::vector<Change<std::tuple<char, double>>> {
+auto Match::backward_changes(const Potentials& potentials) const noexcept
+-> std::vector<Change<char>> {
   return stdv::zip(mdiota(area()), rules[r].input)
     | stdv::filter([&potentials](const auto& input) noexcept {
         auto [u, i] = input;
-        if (not i) return false;
-        auto im = stdr::max(*i, {}, [&potentials, u] (auto i) {
-          return potentials.contains(i) ? potentials.at(i)[u]
-            : std::numeric_limits<double>::quiet_NaN();
+        return i and stdr::any_of(*i, [&potentials, u](auto i) noexcept {
+          return potentials.contains(i)
+             and not is_normal(potentials.at(i)[u]);
         });
-        return is_normal(potentials.at(im)[u]);
     })
-    | stdv::transform([&potentials, p](auto&& input) noexcept {
-        auto im = stdr::max(*std::get<1>(input), {}, [&potentials, u = std::get<0>(input)] (auto i) {
-          return potentials.contains(i) ? potentials.at(i)[u]
-            : std::numeric_limits<double>::quiet_NaN();
-        });
-        return Change{ std::get<0>(input), std::tuple{ im, p }};
+    | stdv::transform([&potentials](auto&& input) noexcept {
+        auto [u, i] = input;
+        auto im = *i | stdv::filter([&potentials, u] (auto i) noexcept {
+          return potentials.contains(i)
+             and not is_normal(potentials.at(i)[u]);
+        }) | stdr::to<std::vector>();
+        return Change{ u, im[0] };
     })
     | stdr::to<std::vector>();
 }
