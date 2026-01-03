@@ -56,29 +56,12 @@ private:
 
 };
 
-template <>
-struct std::formatter<RewriteRule> {
-  std::string sep = "→";
-  template<class ParseContext>
-  constexpr ParseContext::iterator parse(ParseContext& ctx)
-  {
-      auto it = ctx.begin();
-      if (it == ctx.end())
-          return it;
-
-      if (it != ctx.end() && *it != '}')
-          throw std::format_error("Invalid format args for RewriteRule.");
-
-      return it;
-  }
-
+template <class CharT>
+struct std::formatter<RewriteRule, CharT> : std::formatter<std::basic_string<CharT>, CharT> {
+  std::basic_string<CharT> sep = "→";
   template<class FmtContext>
-  FmtContext::iterator format(const RewriteRule& r, FmtContext& ctx) const
-  {
-      std::ostringstream out;
-      out << std::format("[{}x{}]{}{}{}", r.input.extents.extent(2), r.input.extents.extent(1), r.input, sep, r.output);
-
-      return std::ranges::copy(std::move(out).str(), ctx.out()).out;
+  auto format(const RewriteRule& data, FmtContext& ctx) const -> decltype(ctx.out()) {
+    return std::format_to(ctx.out(), "[(RewriteRule) extents = {}, input = {} {} output = {}]", data.input.extents, data.input, sep, data.output);
   }
 };
 

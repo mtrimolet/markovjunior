@@ -207,59 +207,9 @@ struct Grid {
 };
 
 template <class T>
-struct std::formatter<Grid<T>> {
-  template<class ParseContext>
-  constexpr ParseContext::iterator parse(ParseContext& ctx)
-  {
-      auto it = ctx.begin();
-      if (it == ctx.end())
-          return it;
-
-      if (it != ctx.end() && *it != '}')
-          throw std::format_error("Invalid format args for Grid.");
-
-      return it;
-  }
-
-  template<class FmtContext>
-  FmtContext::iterator format(const Grid<T>& g, FmtContext& ctx) const
-  {
-      std::ostringstream out;
-      out << std::format("{}", g.values);
-
-      return stdr::copy(std::move(out).str(), ctx.out()).out;
-  }
-};
-
-template <class T>
 struct Change {
   Area3::Offset u;
   T value;
-};
-
-template <class T>
-struct std::formatter<Change<T>> {
-  template<class ParseContext>
-  constexpr ParseContext::iterator parse(ParseContext& ctx)
-  {
-      auto it = ctx.begin();
-      if (it == ctx.end())
-          return it;
-
-      if (it != ctx.end() && *it != '}')
-          throw std::format_error("Invalid format args for Grid.");
-
-      return it;
-  }
-
-  template<class FmtContext>
-  FmtContext::iterator format(const Change<T>& c, FmtContext& ctx) const
-  {
-      std::ostringstream out;
-      out << std::format("change[u = {}, value = {}] ", c.u, c.value);
-
-      return stdr::copy(std::move(out).str(), ctx.out()).out;
-  }
 };
 
 template <class T>
@@ -277,4 +227,21 @@ struct TracedGrid : Grid<T> {
     Grid<T>::operator[](change.u) = change.value;
   }
 };
+
+template <class T, class CharT>
+struct std::formatter<Grid<T>, CharT> : std::formatter<std::basic_string<CharT>, CharT> {
+  template<class FmtContext>
+  auto format(const Grid<T>& data, FmtContext& ctx) const -> decltype(ctx.out()) {
+    return std::format_to(ctx.out(), "[(Grid) extents = {}, values = {}]", data.extents, data.values);
+  }
+};
+
+template <class T, class CharT>
+struct std::formatter<Change<T>, CharT> : std::formatter<std::basic_string<CharT>, CharT> {
+  template<class FmtContext>
+  auto format(const Change<T>& data, FmtContext& ctx) const -> decltype(ctx.out()) {
+    return std::format_to(ctx.out(), "[(Change) u = {}, value = {}]", data.u, data.value);
+  }
+};
+
 }

@@ -8,31 +8,6 @@ namespace stk = stormkit;
 
 export {
 
-template <stk::meta::IsArithmetic T>
-struct std::formatter<glm::vec<3, T>> {
-  template<class ParseContext>
-  constexpr ParseContext::iterator parse(ParseContext& ctx)
-  {
-      auto it = ctx.begin();
-      if (it == ctx.end())
-          return it;
-
-      if (it != ctx.end() && *it != '}')
-          throw std::format_error("Invalid format args for glm::vec.");
-
-      return it;
-  }
-
-  template<class FmtContext>
-  FmtContext::iterator format(const glm::vec<3, T>& m, FmtContext& ctx) const
-  {
-      std::ostringstream out;
-      out << std::format("[{}, {}, {}]", m.x, m.y, m.z);
-
-      return std::ranges::copy(std::move(out).str(), ctx.out()).out;
-  }
-};
-
 namespace geometry {
 
 // glm only provides geometry functions for vectors of floating-point number types
@@ -46,16 +21,6 @@ constexpr auto dot(const glm::vec<3, T>& a, const glm::vec<3, T>& b) noexcept ->
 }
 
 }
-
-template <stk::meta::IsArithmetic T>
-struct std::hash<glm::vec<3, T>> {
-  constexpr auto operator()(glm::vec<3, T> u) const noexcept -> std::size_t {
-    auto h = std::hash<T>{};
-    return h(u.x)
-         ^ h(u.y)
-         ^ h(u.z);
-  }
-};
 
 template <stk::usize E>
 using Offset = glm::vec<E, stk::ioffset>;
@@ -149,28 +114,29 @@ constexpr auto zyrotated(const Area3& a) noexcept -> Area3 {
   }};
 }
 
-template <stk::usize E>
-struct std::formatter<Area<E>> {
-  template<class ParseContext>
-  constexpr ParseContext::iterator parse(ParseContext& ctx)
-  {
-      auto it = ctx.begin();
-      if (it == ctx.end())
-          return it;
-
-      if (it != ctx.end() && *it != '}')
-          throw std::format_error("Invalid format args for Grid.");
-
-      return it;
-  }
-
+template <stk::meta::IsArithmetic T, class CharT>
+struct std::formatter<glm::vec<3, T>, CharT> : std::formatter<std::basic_string<CharT>, CharT> {
   template<class FmtContext>
-  FmtContext::iterator format(const Area<E>& r, FmtContext& ctx) const
-  {
-      std::ostringstream out;
-      out << std::format("box[u = {}, size = {}] ", r.u, r.size);
+  auto format(const glm::vec<3, T>& data, FmtContext& ctx) const -> decltype(ctx.out()) {
+    return std::format_to(ctx.out(), "[(glm::vec<{}>) x = {}, y = {}, z = {}]", 3, data.x, data.y, data.z);
+  }
+};
 
-      return std::ranges::copy(std::move(out).str(), ctx.out()).out;
+template <stk::usize E, class CharT>
+struct std::formatter<Area<E>, CharT> : std::formatter<std::basic_string<CharT>, CharT> {
+  template<class FmtContext>
+  auto format(const Area<E>& data, FmtContext& ctx) const -> decltype(ctx.out()) {
+    return std::format_to(ctx.out(), "[(Area<{}>) u = {}, size = {}]", E, data.u, data.size);
+  }
+};
+
+template <stk::meta::IsArithmetic T>
+struct std::hash<glm::vec<3, T>> {
+  constexpr auto operator()(glm::vec<3, T> u) const noexcept -> std::size_t {
+    auto h = std::hash<T>{};
+    return h(u.x)
+         ^ h(u.y)
+         ^ h(u.z);
   }
 };
 
