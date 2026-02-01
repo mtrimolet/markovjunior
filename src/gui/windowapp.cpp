@@ -91,7 +91,8 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
       if (stop.stop_requested()) break;  //      and put the program tick inside (instead of async generator)
 
       controls.rate_limit(last_time);
-      controls.wait_unpause();
+      controls.handle_next();
+      controls.wait_unpause(stop);
 
       last_time = clk::now();
     }

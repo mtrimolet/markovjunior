@@ -11,18 +11,20 @@ struct Controls {
   bool   ratelimit_enabled = true;
   double tickrate          = DEFAULT_TICKRATE;
 
-  bool                    model_paused = false;
+  bool                    model_paused = true;
   std::condition_variable pause_cv     = {};
   std::mutex              pause_m      = {};
 
   std::function<void()> onReset = nullptr;
   
+  void write_pause(bool enable);
   void toggle_pause();
   void reset();
-  void wait_unpause();
+  void wait_unpause(std::stop_token stop);
 
   bool next_frame = false;
   void go_next();
+  void handle_next();
 
   void rate_limit(clock::time_point last_time);
 };

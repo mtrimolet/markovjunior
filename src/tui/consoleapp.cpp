@@ -71,7 +71,8 @@ auto ConsoleApp::operator()(std::span<const std::string_view> args) noexcept -> 
       if (stop.stop_requested()) break;
 
       controls.rate_limit(last_time);
-      controls.wait_unpause();
+      controls.handle_next();
+      controls.wait_unpause(stop);
 
       last_time = clk::now();
     }
