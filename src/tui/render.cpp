@@ -410,7 +410,12 @@ Component WorldAndPotentials(const Grid<char>& grid, const Model& model, const r
           }));
         }
 
-        for (const auto& [sym, p] : r->potentials) {
+        auto keys = stdv::keys(r->potentials) | stdr::to<std::vector>();
+        stdr::sort(keys, {}, [&symbols = model.symbols](const auto& s) {
+          return stdr::distance(stdr::begin(symbols), stdr::find(symbols, s));
+        });
+        for (auto sym : keys) {
+          const auto& p = r->potentials.at(sym);
           tabnames.push_back(std::format("{}", sym));
           tabview->Add(Renderer([&p] { return render::potential(p); }));
         }
