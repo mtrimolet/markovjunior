@@ -190,15 +190,15 @@ auto Match::backward_changes(const Potentials& potentials) const noexcept
     | stdv::filter([&potentials](const auto& input) noexcept {
         auto [u, i] = input;
         return i and stdr::any_of(*i, [&potentials, u](auto i) noexcept {
-          return potentials.contains(i)
-             and not is_normal(potentials.at(i)[u]);
+          return not potentials.contains(i)
+             or not is_normal(potentials.at(i)[u]);
         });
     })
     | stdv::transform([&potentials](auto&& input) noexcept {
         auto [u, i] = input;
         auto im = *i | stdv::filter([&potentials, u] (auto i) noexcept {
-          return potentials.contains(i)
-             and not is_normal(potentials.at(i)[u]);
+          return not potentials.contains(i)
+             or not is_normal(potentials.at(i)[u]);
         }) | stdr::to<std::vector>();
         return Change{ u, im[0] };
     })
