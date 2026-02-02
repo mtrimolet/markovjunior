@@ -22,7 +22,7 @@ auto TreeRunner::operator()(TracedGrid<char>& grid) noexcept -> std::generator<b
   ) {
     auto found = false;
     for (auto s : current_node->visit([&grid](auto& n) noexcept { return n(grid); })) {
-      found = true;
+      found |= s;
       co_yield s;
     }
 
@@ -63,4 +63,3 @@ auto current(const NodeRunner& n) noexcept -> const RuleNode* {
 
   std::unreachable();
 }
-
