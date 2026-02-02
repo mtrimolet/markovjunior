@@ -7,14 +7,22 @@ import engine.match;
 namespace stdr = std::ranges;
 namespace stdv = std::views;
 
+auto Observe::goal_reached(const Grid<char>& grid, const Future& future) noexcept -> bool {
+  return stdr::all_of(stdv::zip(grid, future), [](const auto& gf) static {
+    const auto& [g, f] = gf;
+    return stdr::contains(f, g);
+  });
+}
+
 auto Observe::future(std::vector<Change<char>>& changes, std::optional<Future>& future, const Grid<char>& grid, const Observes& observes) noexcept -> void {
   auto values = charset{};
+  auto okeys = observes | stdv::keys | stdr::to<charset>();
 
   future = {
     std::from_range,
     mdiota(grid.area()) | stdv::transform([&](auto u) noexcept {
       const auto value = grid[u];
-      if (observes.contains(value)) {
+      if (stdr::contains(okeys, value)) {
         values.insert(value);
         const auto& obs = observes.at(value);
         if (obs.from) changes.emplace_back(u, *obs.from);
@@ -27,14 +35,15 @@ auto Observe::future(std::vector<Change<char>>& changes, std::optional<Future>& 
     grid.extents
   };
 
-  if (const auto expected = observes | stdv::keys | stdr::to<charset>();
-                 expected != values
-  ) {
+  if (okeys != values) {
     future = std::nullopt;
   }
 }
 
 auto Observe::backward_potentials(Potentials& potentials, const Future& future, std::span<const RewriteRule> rules) noexcept -> void {
+  for (auto c : stdv::keys(potentials)) {
+    stdr::fill(potentials.at(c).values, std::numeric_limits<double>::quiet_NaN());
+  }
   const auto update = [&extents = future.extents, &potentials](const auto& cu, auto p) noexcept {
     const auto& [c, u] = cu;
     if (not potentials.contains(c)) {

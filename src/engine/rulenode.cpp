@@ -102,6 +102,12 @@ auto RuleNode::predict(const Grid<char>& grid, std::vector<Change<char>>& change
 
     case Inference::OBSERVE:
       if (future) {
+        if (Observe::goal_reached(grid, *future)) {
+          // dlog("goal reached");
+          future = std::nullopt;
+          return false;
+        }
+        // dlog("future already computed");
         return true;
       }
 
@@ -216,9 +222,9 @@ auto RuleNode::infer(const Grid<char>& grid) noexcept -> void {
     std::not_fn(is_normal),
     &Match::w
   );
-  dlog("rules: {}, found {}/{} match::w", stdr::size(rules), stdr::size(p), stdr::distance(active, stdr::end(matches)));
+  // dlog("rules: {}, found {}/{} match::w", stdr::size(rules), stdr::size(p), stdr::distance(active, stdr::end(matches)));
   active = stdr::begin(p);
-  dlog("preweights {}", stdr::subrange(active, stdr::end(matches)) | stdv::transform(&Match::w) | stdr::to<std::vector>());
+  // dlog("preweights {}", stdr::subrange(active, stdr::end(matches)) | stdv::transform(&Match::w) | stdr::to<std::vector>());
 
   stdr::for_each(
     active, stdr::end(matches),
@@ -228,5 +234,5 @@ auto RuleNode::infer(const Grid<char>& grid) noexcept -> void {
       m.w = std::exp(-(m.w - min_w) / temperature);
     }
   );
-  dlog("weights {}", stdr::subrange(active, stdr::end(matches)) | stdv::transform(&Match::w) | stdr::to<std::vector>());
+  // dlog("weights {}", stdr::subrange(active, stdr::end(matches)) | stdv::transform(&Match::w) | stdr::to<std::vector>());
 }

@@ -19,6 +19,7 @@ struct Observe {
 
   static auto future(std::vector<Change<char>>& changes, std::optional<Future>& future, const Grid<char>& grid, const Observes& observes) noexcept -> void;
   static auto backward_potentials(Potentials& potentials, const Future& future, const std::span<const RewriteRule> rules) noexcept -> void;
+  static auto goal_reached(const Grid<char>& grid, const Future& future) noexcept -> bool;
 };
 
 }
