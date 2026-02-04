@@ -205,6 +205,9 @@ Element ruleRunner(const RuleRunner& node, const Palette& palette) noexcept {
 
   auto steps = text(node.steps != 0 ? std::format(" ({}/{})", node.step, node.steps)
                                     : std::format(" ({})", node.step));
+  if (not stdr::empty(node.rulenode.trajectory)) {
+    steps = hbox({ steps, text(std::format(" ({})", stdr::size(node.rulenode.trajectory))) });
+  }
 
   auto erules = Elements{};
   for(

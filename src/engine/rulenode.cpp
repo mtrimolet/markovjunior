@@ -30,6 +30,22 @@ RuleNode::RuleNode(RuleNode::Mode _mode, std::vector<RewriteRule>&& _rules, Rewr
 
 auto RuleNode::operator()(const TracedGrid<char>& grid, std::vector<Change<char>>& changes) noexcept -> void {
   if (not predict(grid, changes)) return;
+  if (not stdr::empty(trajectory)) {
+    const auto& new_grid = trajectory.back();
+    changes.append_range(
+      stdv::zip(grid, new_grid, mdiota(grid.area()))
+        | stdv::filter([](const auto& t) static noexcept {
+            auto [g, n, _] = t;
+            return g != n;
+        })
+        | stdv::transform([](const auto& t) static noexcept {
+            auto [_, n, u] = t;
+            return Change<char>{ u, n };
+        })
+    );
+    trajectory.pop_back();
+    return;
+  }
   scan(grid);
   infer(grid);
   select();
@@ -122,6 +138,10 @@ auto RuleNode::predict(const Grid<char>& grid, std::vector<Change<char>>& change
 
     case Inference::SEARCH:
       if (future) {
+        if (stdr::empty(trajectory)) {
+          future = std::nullopt;
+          return false;
+        }
         return true;
       }
 

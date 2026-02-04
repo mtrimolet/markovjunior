@@ -53,20 +53,19 @@ auto Observe::backward_potentials(Potentials& potentials, const Future& future, 
     return std::tuple{ c, u, p };
   };
   propagate(
-    stdv::zip(mdiota(future.area()), future)
+    stdv::zip(future, mdiota(future.area()))
       | stdv::transform([](const auto& zero) static noexcept {
-          const auto& [u, f] = zero;
+          const auto& [f, u] = zero;
           return f | stdv::transform([u](auto c) noexcept {
             return std::tuple{ c, u };
           });
       })
       | stdv::join
       | stdv::transform(std::bind_back(update, 0.0)),
-    [&update, &potentials, &rules](auto&& front) noexcept {
+    [&potentials, &rules, &update](auto&& front) noexcept {
       auto [c, u, p] = front;
-      const auto& potential = potentials.at(c);
       return stdv::zip(rules, stdv::iota(0u))
-        | stdv::transform([p_area = potential.area(), u, c](const auto& v) noexcept {
+        | stdv::transform([p_area = potentials.at(c).area(), c, u](const auto& v) noexcept {
             const auto& [rule, r] = v;
             return rule.get_oshifts(c)
                  | stdv::transform(std::bind_front(std::minus<Area3::Offset>{}, u))
@@ -83,7 +82,7 @@ auto Observe::backward_potentials(Potentials& potentials, const Future& future, 
         | stdv::transform([rules](auto&& ur) noexcept {
             return Match{ rules, std::get<0>(ur), std::get<1>(ur) };
         })
-        | stdv::filter(std::bind_back(&Match::backward_match, std::cref(potentials), potential[u]))
+        | stdv::filter(std::bind_back(&Match::backward_match, std::cref(potentials), p))
         | stdv::transform(std::bind_back(&Match::backward_changes, std::cref(potentials)))
         | stdv::join
         | stdv::transform([](auto&& ch) static noexcept {

@@ -39,8 +39,8 @@ struct Match {
   -> std::vector<Change<char>>;
 
   auto forward_match(const Potentials& potentials, double p) const noexcept -> bool;
-  auto forward_changes(const Potentials& potentials, double p) const noexcept
-  -> std::vector<Change<std::tuple<char, double>>>;
+  auto forward_changes(const Potentials& potentials) const noexcept
+  -> std::vector<Change<char>>;
 };
 
 template <class CharT>

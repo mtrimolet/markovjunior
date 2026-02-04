@@ -205,16 +205,16 @@ auto Match::backward_changes(const Potentials& potentials) const noexcept
     | stdr::to<std::vector>();
 }
 
-auto Match::forward_changes(const Potentials& potentials, double p) const noexcept
--> std::vector<Change<std::tuple<char, double>>> {
+auto Match::forward_changes(const Potentials& potentials) const noexcept
+-> std::vector<Change<char>> {
   return stdv::zip(mdiota(area()), rules[r].output)
     | stdv::filter([&potentials](const auto& output) noexcept {
         auto [u, o] = output;
         return o
            and is_normal(potentials.at(*o)[u]);
     })
-    | stdv::transform([p](auto&& output) noexcept {
-        return Change{ std::get<0>(output), std::tuple{ *std::get<1>(output), p }};
+    | stdv::transform([](auto&& output) noexcept {
+        return Change{ std::get<0>(output), *std::get<1>(output) };
     })
     | stdr::to<std::vector>();
 }

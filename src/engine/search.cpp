@@ -1,5 +1,6 @@
 module engine.search;
 
+import log;
 import geometry;
 
 import engine.match;
@@ -79,12 +80,13 @@ auto Search::trajectory(
       stdv::iota(0u)
     )
       | stdr::to<std::priority_queue>([](const auto& a, const auto& b){
-          return std::get<0>(a) - std::get<0>(b);
+          return std::get<0>(a) < std::get<0>(b);
       });
     not stdr::empty(q) and (limit == 0 or stdr::size(candidates) < limit);
-    q.pop()
+    // q.pop()
   ) {
-    auto [score, parentIndex]  = q.top();
+    auto [score, parentIndex] = q.top();
+    q.pop(); // we need to pop this before inserting another, which could become the new top
     const auto& parent = candidates[parentIndex];
 
     for (auto& childState : parent.children(rules, all)) {
@@ -124,7 +126,8 @@ auto Search::trajectory(
         auto& child = candidates[childIndex];
 
         if (child.forward == 0.0) {
-          q = {}; // end the propagation
+          q = {}; // break the outer for loop
+          ilog("break");
           break;
         }
 
@@ -146,36 +149,55 @@ auto Search::trajectory(
 
   // TODO use child.depth to resize traj
   for (auto candidate = stdr::prev(stdr::cend(candidates));
-       candidate->parentIndex >= 0;
-       candidate = stdr::next(stdr::cbegin(candidates), candidate->parentIndex)
+    ;
+    candidate = stdr::next(stdr::cbegin(candidates), candidate->parentIndex)
   ) {
-    traj.emplace(stdr::begin(traj), std::move(candidate->state));
+    traj.emplace_back(std::move(candidate->state));
+    if (candidate->parentIndex == static_cast<std::size_t>( -1 )) break;
   }
 }
 
 auto Search::forward_potentials(Potentials& potentials, const Grid<char>& grid, std::span<const RewriteRule> rules) noexcept -> void {
+  for (auto c : stdv::keys(potentials)) {
+    stdr::fill(potentials.at(c).values, std::numeric_limits<double>::quiet_NaN());
+  }
+  const auto update = [&extents = grid.extents, &potentials](const auto& cu, auto p) noexcept {
+    const auto& [c, u] = cu;
+    if (not potentials.contains(c)) {
+      potentials.emplace(c, Potential{ extents, std::numeric_limits<double>::quiet_NaN() });
+    }
+    potentials.at(c)[u] = p;
+    return std::tuple{ c, u, p };
+  };
   propagate(
-    stdv::zip(mdiota(grid.area()), grid)
-      | stdv::transform([&potentials](const auto& p) noexcept {
-          auto [u, c] = p;
-          potentials.at(c)[u] = 0.0;
-          return std::tuple{ u, c };
-      }),
-    [&potentials, &rules](auto&& front) noexcept {
-      auto [u, c] = front;
-      auto p = potentials.at(c)[u];
-      return stdv::iota(0u, stdr::size(rules))
-        | stdv::transform([&rules, u](auto r) noexcept {
-            return Match{ rules, u, r };
+    stdv::zip(grid, mdiota(grid.area()))
+      | stdv::transform(std::bind_back(update, 0.0)),
+    [&potentials, &rules, &update](auto&& front) noexcept {
+      auto [c, u, p] = front;
+      return stdv::zip(rules, stdv::iota(0u))
+        | stdv::transform([p_area = potentials.at(c).area(), c, u](const auto& v) noexcept {
+            const auto& [rule, r] = v;
+            return rule.get_ishifts(c)
+                 | stdv::transform(std::bind_front(std::minus<Area3::Offset>{}, u))
+                 | stdv::filter([p_area, r_area = rule.input.area()](auto u) noexcept {
+                     auto ru_area = r_area + u;
+                     return p_area.meet(ru_area) == ru_area;
+                 })
+                 | stdv::transform([r](auto u) noexcept {
+                     return std::tuple{ u, r };
+                 });
         })
-        | stdv::filter(std::bind_back(&Match::forward_match, potentials, p))
-        | stdv::transform(std::bind_back(&Match::forward_changes, potentials, p + 1))
         | stdv::join
-        | stdv::transform([&potentials](auto&& ch) noexcept {
-            auto [c, p] = ch.value;
-            potentials.at(c)[ch.u] = p;
-            return std::tuple{ ch.u, c };
-        });
+        | stdv::transform([rules](auto&& ur) noexcept {
+            return Match{ rules, std::get<0>(ur), std::get<1>(ur) };
+        })
+        | stdv::filter(std::bind_back(&Match::forward_match, std::cref(potentials), p))
+        | stdv::transform(std::bind_back(&Match::forward_changes, std::cref(potentials)))
+        | stdv::join
+        | stdv::transform([](auto&& ch) static noexcept {
+            return std::tuple{ ch.value, ch.u };
+        })
+        | stdv::transform(std::bind_back(update, p + 1.0));
     }
   );
 }
