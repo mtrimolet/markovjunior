@@ -150,7 +150,7 @@ auto RuleNode::predict(const Grid<char>& grid, std::vector<Change<char>>& change
         return false;
       }
 
-      auto TRIES = limit < 0 ? 1 : 20;
+      auto TRIES = limit < 1 ? 1 : 20;
       for (auto k = 0; k < TRIES && stdr::empty(trajectory); k++) {
         Search::trajectory(trajectory, *future, grid, rules, mode == Mode::ALL, limit, depthCoefficient);
       }

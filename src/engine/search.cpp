@@ -59,12 +59,14 @@ auto Search::trajectory(
     Search::forward_delta(forward, future) 
   );
 
-  if (candidates[0].backward < 0.0 or candidates[0].forward < 0.0) {
-    // traj = {};
+  if (not is_normal(candidates[0].backward)/* or candidates[0].backward < 0.0 */
+   or not is_normal(candidates[0].forward) /*or candidates[0].forward < 0.0 */) {
+    dlog("found negative estimate [b={},f={}], abort", candidates[0].backward, candidates[0].forward);
     return;
   }
   if (candidates[0].backward == 0.0) {
     // traj = {};
+    dlog("goal already reached");
     return;
   }
 
@@ -82,7 +84,7 @@ auto Search::trajectory(
       | stdr::to<std::priority_queue>([](const auto& a, const auto& b){
           return std::get<0>(a) < std::get<0>(b);
       });
-    not stdr::empty(q) and (limit == 0 or stdr::size(candidates) < limit);
+    not stdr::empty(q) and (limit < 1 or stdr::size(candidates) < limit);
     // q.pop()
   ) {
     auto [score, parentIndex] = q.top();
@@ -95,13 +97,16 @@ auto Search::trajectory(
 
         auto& child = candidates[childIndex];
         if (child.depth <= parent.depth + 1) {
+          dlog("found shallower child, skip");
           continue;
         }
-        
+
         child.depth = parent.depth + 1;
         child.parentIndex = parentIndex;
 
-        if (child.backward < 0.0 or child.forward < 0.0) {
+        if (not is_normal(child.backward)/* or child.backward < 0.0 */
+         or not is_normal(child.forward) /*or child.forward < 0.0 */) {
+          dlog("found negative estimate [b={},f={}], skip", child.backward, child.forward);
           continue;
         }
 
@@ -111,7 +116,9 @@ auto Search::trajectory(
         auto backward_estimate = Search::backward_delta(backward, childState);
         Search::forward_potentials(forward, childState, rules);
         auto forward_estimate  = Search::forward_delta(forward, future);
-        if (backward_estimate < 0.0 or forward_estimate < 0.0) {
+        if (not is_normal(backward_estimate)/* or backward_estimate < 0.0 */
+         or not is_normal(forward_estimate) /*or forward_estimate < 0.0 */) {
+          dlog("found negative estimate [b={},f={}], skip", backward_estimate, forward_estimate);
           continue;
         }
 
@@ -127,7 +134,7 @@ auto Search::trajectory(
 
         if (child.forward == 0.0) {
           q = {}; // break the outer for loop
-          ilog("break");
+          dlog("forward estimate 0, target reached [d={}]", child.depth);
           break;
         }
 
@@ -144,16 +151,17 @@ auto Search::trajectory(
    or stdr::prev(stdr::cend(candidates))->forward != 0.0
   ) {
     // traj = {};
+    dlog("unable to reach forward estimate 0, failed");
     return;
   }
 
-  // TODO use child.depth to resize traj
+  traj.clear();
+  traj.reserve(stdr::prev(stdr::cend(candidates))->depth);
   for (auto candidate = stdr::prev(stdr::cend(candidates));
-    ;
+    candidate != stdr::begin(candidates);
     candidate = stdr::next(stdr::cbegin(candidates), candidate->parentIndex)
   ) {
     traj.emplace_back(std::move(candidate->state));
-    if (candidate->parentIndex == static_cast<std::size_t>( -1 )) break;
   }
 }
 
@@ -205,9 +213,9 @@ auto Search::forward_potentials(Potentials& potentials, const Grid<char>& grid, 
 auto Search::backward_delta(const Potentials& potentials, const Grid<char>& grid) noexcept -> double {
   auto vals = stdv::zip(mdiota(grid.area()), grid)
     | stdv::transform([&potentials] (const auto& locus) noexcept {
-        auto [u, value] = locus;
-        return potentials.contains(value) ? potentials.at(value)[u]
-          : 0.0;
+        auto [u, c] = locus;
+        return potentials.contains(c) ? potentials.at(c)[u]
+          : std::numeric_limits<double>::quiet_NaN();
     });
   
   return std::reduce(
@@ -218,28 +226,34 @@ auto Search::backward_delta(const Potentials& potentials, const Grid<char>& grid
 }
 
 auto Search::forward_delta(const Potentials& potentials, const Future& future) noexcept -> double {
-  auto vals = stdv::zip(mdiota(future.area()), future)
-    | stdv::transform([&potentials] (const auto& locus) noexcept {
-        auto [u, value] = locus;
-        if (stdr::empty(value)) {
-          return std::numeric_limits<double>::quiet_NaN();
-        }
+  return stdr::fold_left(
+    stdv::zip(mdiota(future.area()), future)
+      | stdv::transform([&potentials] (const auto& locus) noexcept {
+          auto [u, f] = locus;
 
-        auto candidates = potentials
-          | stdv::transform([u] (const auto& pot){
-              const auto& [c, potential] = pot;
-              return potential[u];
-          })
-          | stdv::filter(is_normal);
-        return stdr::empty(candidates) ? std::numeric_limits<double>::quiet_NaN()
-          : stdr::min(candidates);
-    });
-  
-  return std::reduce(
-    // std::execution::par,
-    stdr::begin(vals),
-    stdr::end(vals)
+          auto candidates = f
+            | stdv::transform([&potentials, u] (auto c) {
+                return potentials.contains(c) ? potentials.at(c)[u]
+                  : std::numeric_limits<double>::quiet_NaN();
+            })
+            | stdv::filter(is_normal)
+            | stdr::to<std::vector>();
+
+          if (stdr::empty(candidates)) {
+            ilog("found unreachable future state");
+          }
+
+          return stdr::empty(candidates) ? std::numeric_limits<double>::quiet_NaN()
+            : stdr::min(candidates);
+      }),
+    0.0, std::plus{}
   );
+  
+  // return std::reduce(
+  //   // std::execution::par,
+  //   stdr::begin(vals),
+  //   stdr::end(vals)
+  // );
 }
 
 auto Candidate::weight(double depthCoefficient) const -> double {
