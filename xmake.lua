@@ -27,9 +27,12 @@ add_requires("glm  1.0.1", "frozen")
 add_requires("unordered_dense", "tl_function_ref", "cpptrace")
 
 add_requires("stormkit", {
+    version = "20260206",
     configs = {
         entities = false,
+        lua = false,
         gpu = true,
+        shared = false,
         -- debug = is_mode("debug"),
     },
 })
@@ -37,10 +40,7 @@ add_requires("stormkit", {
 add_defines("PUGIXML_USE_STD_MODULE")
 -- TODO disable unused exceptions and edit code accordingly
 -- add_defines("PUGIXML_NO_EXCEPTIONS")
-add_requires(
-    "pugixml",
-    "ftxui main"
-)
+add_requires("pugixml", "ftxui main")
 
 add_requires("imgui", {
     configs = {
@@ -50,13 +50,7 @@ add_requires("imgui", {
     },
 })
 
-add_requireconfs(
-    "glm",
-
-    "pugixml",
-    "cpptrace",
-    { system=false }
-)
+add_requireconfs("pugixml", "cpptrace", { system = false })
 
 -- if is_mode("debug") then
 --     add_defines("_LIBCPP_DEBUG")
@@ -66,7 +60,12 @@ add_requireconfs(
 --     )
 -- end
 
-add_requireconfs("**", { configs = { modules = true, std_import = true, cpp = "latest" }})
+add_requireconfs("ftxui", { system = false, configs = { modules = true } })
+add_requireconfs("glm", { system = false, configs = { modules = true } })
+add_requireconfs("pugixml", { system = false, configs = { modules = true } })
+add_requireconfs("frozen", { configs = { modules = true, std_import = true, cpp = "latest" } })
+add_requireconfs("unordered_dense", { configs = { modules = true, std_import = true } })
+add_requireconfs("tl_function_ref", { configs = { modules = true, std_import = true } })
 add_cxxflags("-fexperimental-library")
 add_ldflags("-fexperimental-library")
 
@@ -83,21 +82,20 @@ target("markovjunior")
 
     -- stormkit deps, remove when handled by xmake
     add_packages(
-        "glm", "frozen",
+        "glm",
+        "frozen",
 
         -- stormkit deps, remove when handled by xmake
-        "unordered_dense", "tl_function_ref", "cpptrace",
+        "unordered_dense",
+        "tl_function_ref",
+        "cpptrace",
 
         "pugixml",
         "ftxui",
         "imgui"
     )
 
-    add_files(
-        "lib/**.mpp",
-        "src/**.mpp",
-        "src/**.cpp"
-    )
+    add_files("lib/**.mpp", "src/**.mpp", "src/**.cpp")
     set_rundir("$(projectdir)")
 
     if is_plat("macosx") then

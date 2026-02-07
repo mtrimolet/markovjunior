@@ -39,7 +39,7 @@ static constexpr auto DEFAULT_GRID_EXTENT = std::dims<3>{1u, 59u, 59u};
 static constexpr auto DEFAULT_TICKRATE = 60;
 
 static constexpr auto WINDOW_TITLE = "MarkovJunior";
-static constexpr auto WINDOW_SIZE  = stk::math::Extent2<stk::u32>{800, 600};
+static constexpr auto WINDOW_SIZE  = stk::math::uextent2{800, 600};
 static constexpr auto BUFFERING_COUNT = 2;
 
 struct SubmissionResource {
@@ -349,12 +349,12 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
       if (key == stkw::Key::ESCAPE) window.close();
       io.AddInputCharactersUTF8(&c);
     } },
-    stkw::MouseMovedEventFunc{ [&io](stk::u8 /*id*/, const stk::math::vec2i& position) mutable noexcept {
+    stkw::MouseMovedEventFunc{ [&io](stk::u8 /*id*/, const stk::math::ivec2& position) mutable noexcept {
       const auto _position = position.to<stk::f32>();
       io.AddMouseSourceEvent(ImGuiMouseSource_Mouse);
       io.AddMousePosEvent(_position.x, _position.y);
     } },
-    stkw::MouseButtonDownEventFunc{ [&io](stk::u8 /*id*/, stkw::MouseButton button, const stk::math::vec2i&) mutable noexcept {
+    stkw::MouseButtonDownEventFunc{ [&io](stk::u8 /*id*/, stkw::MouseButton button, const stk::math::ivec2&) mutable noexcept {
       auto mouse_button = -1;
       switch (button) {
         case stkw::MouseButton::LEFT:     mouse_button = 0; break;
@@ -367,7 +367,7 @@ auto WindowApp::operator()(std::span<const std::string_view> args) noexcept -> i
       io.AddMouseSourceEvent(ImGuiMouseSource_Mouse);
       io.AddMouseButtonEvent(mouse_button, true);
     } },
-    stkw::MouseButtonUpEventFunc{ [&io](stk::u8 /*id*/, stkw::MouseButton button, const stk::math::vec2i&) mutable noexcept {
+    stkw::MouseButtonUpEventFunc{ [&io](stk::u8 /*id*/, stkw::MouseButton button, const stk::math::ivec2&) mutable noexcept {
       auto mouse_button = -1;
       switch (button) {
         case stkw::MouseButton::LEFT:     mouse_button = 0; break;

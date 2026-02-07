@@ -45,7 +45,7 @@ auto ConsoleApp::operator()(std::span<const std::string_view> args) noexcept -> 
           return std::tuple{ character, Color{ Color::Default }};
         }
         const auto& c = default_palette.at(character);
-        return std::tuple{ character, Color::RGB(c.red, c.green, c.blue) };
+        return std::tuple{ character, Color::RGB(c.r, c.g, c.b) };
     })
     | stdr::to<render::Palette>();
 
